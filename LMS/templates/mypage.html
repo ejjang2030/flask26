@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-info text-white py-3">
+                <h4 class="mb-0"><i class="bi bi-person-circle"></i> 마이페이지</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center border-end">
+                        <div class="display-1 text-secondary mb-3">
+                            <i class="bi bi-person-bounding-box"></i>
+                        </div>
+                        <h4 class="fw-bold">{{ user.name }}</h4>
+                        <span class="badge bg-primary">{{ user.role.upper() }}</span>
+                    </div>
+                    <div class="col-md-8 ps-md-5">
+                        <h5 class="text-muted border-bottom pb-2">기본 정보</h5>
+                        <div class="mb-3 mt-3">
+                            <strong>아이디:</strong> <span>{{ user.uid }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>가입일:</strong> <span>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else "날짜없음" }}</span>
+                        </div>
+                        
+                        <h5 class="text-muted border-bottom pb-2 mt-4">활동 요약</h5>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body text-center">
+                                        <small class="text-muted d-block">작성 게시글</small>
+                                        <a href="/board/my" class="h4 fw-bold text-decoration-none">{{ board_count }}건</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body text-center">
+                                        <small class="text-muted d-block">성적 등록 여부</small>
+                                        <a href="/score/my" class="h4 fw-bold text-success text-decoration-none">확인하기</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 text-end p-4">
+                <a href="/member/edit" class="btn btn-warning btn-sm text-white">정보 수정</a>
+                <button class="btn btn-outline-secondary btn-sm" onclick="location.href='/'">홈으로</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

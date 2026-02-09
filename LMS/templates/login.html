@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h3 class="text-center mb-4">로그인</h3>
+                        <form action="/login" method="POST">
+                            <!-- 하단에 submit버튼을 누르면 전송되는 메서드와 값 처리용 -->
+                            <div class="mb-3">
+                                <label class="form-label">아이디</label>
+                                <input type="text" name="uid" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">비밀번호</label>
+                                <input type="password" name="upw" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">로그인</button>
+                        </form>
+                        <div class="mt-3 text-center">
+                            <a href="/join" class="text-decoration-none">회원가입 하러가기</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

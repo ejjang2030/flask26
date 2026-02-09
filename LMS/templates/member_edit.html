@@ -1,0 +1,35 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white text-center">
+                <h4 class="mb-0">회원 정보 수정</h4>
+            </div>
+            <div class="card-body p-4">
+                <form action="/member/edit" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">아이디 (변경 불가)</label>
+                        <input type="text" class="form-control bg-light" value="{{ user.uid }}" readonly>
+                        <!--                               render_template('member_edit.html', user=user_info)     -->
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">이름</label>
+                        <input type="text" name="name" class="form-control" value="{{ user.name }}" required>
+                        <!--                               render_template('member_edit.html', user=user_info)     -->
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">새 비밀번호</label>
+                        <input type="password" name="password" class="form-control" placeholder="변경 시에만 입력하세요">
+                        <div class="form-text text-danger">* 비밀번호를 입력하지 않으면 기존 비밀번호가 유지됩니다.</div>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">수정 완료</button>
+                        <a href="/mypage" class="btn btn-outline-secondary">취소</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
