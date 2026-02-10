@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <h2 class="mb-4">게시글 상세보기</h2>
+
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">{{ board.title }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-md-6">
+                            <strong>작성자:</strong> {{ board.writer_name }}
+                            <span class="text-muted">({{ board.writer_uid }})</span>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <strong>작성일:</strong>
+                            {{ board.created_at.strftime('%Y-%m-%d %H:%M') if board.created_at }}
+                        </div>
+                    </div>
+
+                    <div class="view-content mb-4">
+                        {{ board.content }}
+                    </div>
+
+                    <div class="text-center">
+                        <a href="/board" class="btn btn-secondary">목록으로</a>
+
+                        {# 작성자 본인에게만 보이도록 나중에 세션 처리 예정 #}
+                        <a href="/board/edit/{{ board.id }}" class="btn btn-warning">수정</a>
+                        <a href="/board/delete/{{ board.id }}" class="btn btn-danger"
+                           onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

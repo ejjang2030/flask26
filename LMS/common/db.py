@@ -11,11 +11,20 @@ DB_CONFIG = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
+TEACHERS_DB_CONFIG = {
+    'host': '192.168.0.150',
+    'user': 'mbc320',
+    'password': '1234',
+    'db': 'lms',
+    'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
 # 1. DB 연결 관리 함수 (g 객체 사용)
 def get_db():
     if 'db' not in g:
         # 연결이 없으면 새로 생성하여 g.db에 저장
-        g.db = pymysql.connect(**DB_CONFIG)
+        g.db = pymysql.connect(**TEACHERS_DB_CONFIG)
     return g.db
 
 def execute_query(sql, args=()):

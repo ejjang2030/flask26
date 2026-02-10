@@ -1,5 +1,5 @@
 class Board:
-    def __init__(self, id, title, content, member_id, active=True, writer_name=None, writer_uid=None):
+    def __init__(self, id, title, content, member_id, active=True, writer_name=None, created_at=None, writer_uid=None):
         self.id = id  # DB의 PK
         self.title = title
         self.content = content
@@ -8,6 +8,7 @@ class Board:
 
         # JOIN을 통해 가져올 추가 정보들 (선택 사항)
         self.writer_name = writer_name
+        self.created_at = created_at
         self.writer_uid = writer_uid
 
     @classmethod
@@ -21,8 +22,9 @@ class Board:
             member_id=row.get('member_id'),
             active=bool(row.get('active')), # 현재 미구현!
             # JOIN 쿼리 시 사용할 이름과 아이디
-            writer_name=row.get('name'),
-            writer_uid=row.get('uid')
+            writer_name=row.get('writer_name'),
+            created_at=row.get('created_at'),
+            writer_uid=row.get('writer_uid')
         )
 
     def __str__(self): # print(board)로 테스트용

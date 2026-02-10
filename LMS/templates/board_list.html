@@ -1,0 +1,56 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="mb-4">자유 게시판</h2>
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>번호</th>
+                    <th>제목</th>
+                    <th>작성자</th>
+                    <th>날짜</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in boards %}
+                <tr>
+                    <td>{{ b.id }}</td>
+                    <td><a href="/board/view/{{ b.id }}" class="text-decoration-none text-dark">{{ b.title }}</a></td>
+                    <td>{{ b.writer_name }}</td>
+                    <td>{{ b.created_at.strftime('%Y-%m-%d') if b.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+
+            {# 이전 버튼 #}
+            <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+              <a class="page-link" href="{{ url_for('board_list', page=pagination.prev_num) }}">&laquo;</a>
+            </li>
+
+            {# 페이지 번호 #}
+            {% for p in range(1, pagination.total_pages + 1) %}
+              <li class="page-item {{ 'active' if p == pagination.page }}">
+                <a class="page-link" href="{{ url_for('board_list', page=p) }}">{{ p }}</a>
+              </li>
+            {% endfor %}
+
+            {# 다음 버튼 #}
+            <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+              <a class="page-link" href="{{ url_for('board_list', page=pagination.next_num) }}">&raquo;</a>
+            </li>
+
+          </ul>
+        </nav>
+
+        <div class="text-end">
+            <a href="/board/write" class="btn btn-primary">글쓰기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

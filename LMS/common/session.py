@@ -20,8 +20,8 @@ class Session:
         print("get_connection()메서드 호출 - mysql에 접속됩니다.")
 
         return pymysql.connect(
-            host='localhost',
-            user='mbc',
+            host='192.168.0.150',
+            user='mbc320',
             password='1234',  # 본인의 비밀번호로 변경
             db='lms',
             charset='utf8mb4',
