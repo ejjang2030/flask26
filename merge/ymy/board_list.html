@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="mb-4">자유 게시판</h2>
+
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>번호</th>
+                    <th>제목</th>
+                    <th>작성자</th>
+                    <th>날짜</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for b in boards %}
+                <tr>
+                    <td>{{ b.id }}</td>
+                    <td>
+                        <a href="/board/view/{{ b.id }}"
+                           class="text-decoration-none {{ 'text-muted' if b.active == 0 else 'text-dark' }}">
+                            {{ b.title }}
+                        </a>
+
+                        {% if b.report_count >= 1 %}
+                            <span class="badge rounded-pill bg-danger ms-1" style="font-size: 0.7rem;">신고</span>
+                        {% endif %}
+
+                        {% if session['user_role'] == 'admin' and b.active == 0 %}
+                            <span class="badge rounded-pill bg-secondary ms-1" style="font-size: 0.7rem;">삭제됨</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ b.writer_name }}</td>
+                    <td>{{ b.created_at.strftime('%Y-%m-%d') if b.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="text-end">
+            <a href="/board/write" class="btn btn-primary">글쓰기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

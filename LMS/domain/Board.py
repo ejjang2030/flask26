@@ -1,5 +1,18 @@
 class Board:
-    def __init__(self, id, title, content, member_id, active=True, writer_name=None, created_at=None, writer_uid=None, visits=0, likes=0):
+    def __init__(
+            self,
+            id,
+            title,
+            content,
+            member_id,
+            active=True,
+            writer_name=None,
+            created_at=None,
+            writer_uid=None,
+            visits=0,
+            likes=0,
+            report_count=0
+    ):
         self.id = id  # DB의 PK
         self.title = title
         self.content = content
@@ -12,6 +25,7 @@ class Board:
         self.writer_uid = writer_uid
         self.visits = visits
         self.likes = likes
+        self.report_count = report_count
 
     @classmethod
     def from_db(cls, row: dict):
@@ -27,12 +41,6 @@ class Board:
             writer_name=row.get('writer_name'),
             created_at=row.get('created_at'),
             writer_uid=row.get('writer_uid'),
-            visits=row.get('visits')
+            visits=row.get('visits'),
+            report_count=row.get('report_count', 0)
         )
-
-    def __str__(self): # print(board)로 테스트용
-        # 목록 출력 시 보여줄 형식 -> 객체를 문자열로 변환하여 1줄로 출력!!
-        writer = self.writer_name if self.writer_name else f"ID:{self.member_id}"
-        #                         작성자의 이름이 있으면
-        # 작성자의 이름을 writer에 넣음                  없으면 작성자의 번호를 넣는다.
-        return f"{self.id:<4} | {self.title:<20} | {writer:<10}"

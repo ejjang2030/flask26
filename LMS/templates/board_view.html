@@ -1,101 +1,182 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <h2 class="mb-4">게시글 상세보기</h2>
+<style>
+    :root {
+        --communa-teal: #20828A;
+        --communa-light-teal: rgba(32, 130, 138, 0.08);
+    }
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white">
-                    <h4 class="mb-0">{{ board.title }}</h4>
+    .view-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        border: 1px solid #f1f3f5;
+        overflow: hidden;
+    }
+
+    .view-header {
+        background-color: #fcfdfe;
+        padding: 40px 40px 20px 40px;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .view-content {
+        padding: 40px;
+        line-height: 1.8;
+        font-size: 1.05rem;
+        color: #343a40;
+        min-height: 250px;
+    }
+
+    /* 좋아요 버튼 커스텀 */
+    #like-btn {
+        transition: all 0.3s ease;
+        border: 2px solid #ffeded;
+        background: #fff5f5;
+        color: #ff4d4d;
+        border-radius: 50px;
+        padding: 12px 30px;
+    }
+    #like-btn.active {
+        background: #ff4d4d;
+        color: white;
+        border-color: #ff4d4d;
+        box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
+    }
+
+    /* 댓글 섹션 */
+    .comment-card {
+        background-color: #fcfdfe;
+        border-radius: 15px;
+        border: 1px solid #f1f3f5;
+    }
+    .comment-input:focus {
+        border-color: var(--communa-teal);
+        box-shadow: 0 0 0 0.25rem var(--communa-light-teal);
+    }
+
+    /* 버튼 스타일 */
+    .btn-communa {
+        background-color: var(--communa-teal);
+        color: white;
+        border: none;
+    }
+    .btn-communa:hover {
+        background-color: #1a6d74;
+        color: white;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="view-container">
+            <div class="view-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge px-3 py-2" style="background-color: var(--communa-light-teal); color: var(--communa-teal);">자유게시판</span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3 border-bottom pb-2">
-                        <div class="col-md-6">
-                            <strong>작성자:</strong> {{ board.writer_name }}
-                            <span class="text-muted">({{ board.writer_uid }})</span>
+                <div>
+
+        <h2 class="fw-bold mt-2" style="letter-spacing: -1px; line-height: 1.4;">{{ board.title }}</h2>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background-color: #f8f9fa;">
+        <div class="d-flex align-items-center">
+            <div class="bg-white shadow-sm rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; border: 1px solid #eee;">
+                <i class="bi bi-person-fill text-secondary fs-5"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-dark">{{ board.writer_name }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ board.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+        </div>
+        <div class="d-flex gap-3">
+            <div class="text-center">
+                <div class="text-muted small">조회수</div>
+                <div class="fw-bold"><i class="bi bi-eye me-1"></i>{{ board.visits }}</div>
+            </div>
+            <div class="vr"></div> <div class="text-center">
+                <div class="text-muted small">좋아요</div>
+                <div class="fw-bold text-danger"><i class="bi bi-heart-fill me-1"></i>{{ board.likes }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <div class="view-content">
+                {{ board.content | safe }}
+            </div>
+
+            <div class="text-center mb-3">
+                <button id="like-btn" class="btn btn-lg fw-bold {% if user_liked %}active{% endif %}"
+                        onclick="toggleLike({{ board.id }})">
+                    <span id="like-icon" class="me-1">{% if user_liked %}<i class="bi bi-heart-fill"></i>{% else %}<i class="bi bi-heart"></i>{% endif %}</span>
+                    좋아요 <span id="like-count" class="ms-1">{{ board.likes }}</span>
+                </button>
+            </div>
+            <div class="d-flex justify-content-center gap-2 mb-5">
+                <a href="/board" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-white" style="background-color: var(--communa-teal);">목록으로 돌아가기</a>
+                {% if session.get('user_id') == board.member_id %}
+                <a href="/board/edit/{{ board.id }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">수정</a>
+                <a href="/board/delete/{{ board.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-3 ms-1" onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
+                {% endif %}
+            </div>
+
+            <div class="bg-light p-4 p-md-5">
+                <h5 class="fw-bold mb-4">
+                    <i class="bi bi-chat-left-text me-2"></i>댓글
+                    <span style="color: var(--communa-teal);">{{ comments|length }}</span>
+                </h5>
+
+                <div class="card border-0 shadow-sm mb-5 rounded-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex">
+                            <textarea id="comment-content" class="form-control border-0 comment-input" rows="2" placeholder="따뜻한 댓글을 남겨주세요." style="resize: none;"></textarea>
+                            <button class="btn btn-communa px-4 ms-2 rounded-3 fw-bold" onclick="submitComment(null)">등록</button>
                         </div>
-                        <div class="col-md-6 text-md-end">
-                            <strong>작성일:</strong>
-                            {{ board.created_at.strftime('%Y-%m-%d %H:%M') if board.created_at }}
+                    </div>
+                </div>
+
+                {% macro render_comment(comment_list) %}
+                    {% for c in comment_list %}
+                    <div class="mb-4 {% if c.parent_id %}ms-5 ps-3 border-start border-2{% endif %}" id="comment-{{ c.id }}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="fw-bold text-dark me-2">{{ c.writer_name }}</span>
+                                <small class="text-muted">{{ c.created_at }}</small>
+                            </div>
+                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted small" onclick="toggleReplyForm({{ c.id }})">답글</button>
                         </div>
-                    </div>
+                        <p class="mb-2 text-secondary">{{ c.content }}</p>
 
-                    <div class="view-content mb-5" style="min-height: 150px;">
-                        {{ board.content }}
-                    </div>
+                        <div id="reply-form-{{ c.id }}" class="mt-3 d-none">
+                            <div class="input-group input-group-sm bg-white p-2 rounded-3 shadow-sm">
+                                <input type="text" id="reply-input-{{ c.id }}" class="form-control border-0" placeholder="답글을 입력하세요">
+                                <button class="btn btn-communa rounded-2 px-3" onclick="submitComment({{ c.id }})">등록</button>
+                            </div>
+                        </div>
 
-                    <div class="text-center mb-5">
-                        <button id="like-btn" class="btn btn-outline-danger btn-lg {% if user_liked %}active{% endif %}"
-                                onclick="toggleLike({{ board.id }})">
-                            <span id="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
-                            좋아요 <span id="like-count">{{ board.likes }}</span>
-                        </button>
-                    </div>
-
-                    <div class="text-center pb-4 border-bottom">
-                        <a href="/board" class="btn btn-secondary">목록으로</a>
-                        {% if session.get('user_id') == board.member_id %}
-                        <a href="/board/edit/{{ board.id }}" class="btn btn-warning">수정</a>
-                        <a href="/board/delete/{{ board.id }}" class="btn btn-danger"
-                           onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
+                        {% if c.children %}
+                            <div class="children-list mt-3">
+                                {{ render_comment(c.children) }}
+                            </div>
                         {% endif %}
                     </div>
+                    {% endfor %}
+                {% endmacro %}
 
-
-                    <div class="comment-section mt-5">
-                        <h5>댓글 <span class="text-primary">{{ comments|length }}</span></h5>
-
-                        <div class="card my-3">
-                            <div class="card-body">
-                                <div class="input-group">
-                                    <textarea id="comment-content" class="form-control" rows="2" placeholder="댓글을 남겨주세요."></textarea>
-                                    <button class="btn btn-primary" onclick="submitComment(null)">등록</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% macro render_comment(comment_list) %}
-                            {% for c in comment_list %}
-                            <div class="mb-3 {% if c.parent_id %}ms-4 ps-3 border-start{% endif %}" id="comment-{{ c.id }}">
-                                <div class="card border-0">
-                                    <div class="card-body py-1">
-                                        <div class="d-flex justify-content-between">
-                                            <strong>{{ c.writer_name }}</strong>
-                                            <small class="text-muted">{{ c.created_at }}</small>
-                                        </div>
-                                        <p class="mb-1">{{ c.content }}</p>
-                                        <button class="btn btn-sm text-secondary p-0" onclick="toggleReplyForm({{ c.id }})">답글</button>
-
-                                        <div id="reply-form-{{ c.id }}" class="mt-2 d-none">
-                                            <div class="input-group input-group-sm">
-                                                <input type="text" id="reply-input-{{ c.id }}" class="form-control" placeholder="답글 입력">
-                                                <button class="btn btn-secondary" onclick="submitComment({{ c.id }})">등록</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {% if c.children %}
-                                    <div class="children-list">
-                                        {{ render_comment(c.children) }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            {% endfor %}
-                        {% endmacro %}
-
-                        <div id="comment-list">
-                            {{ render_comment(comments) }}
-                        </div>
-                    </div>
+                <div id="comment-list">
+                    {{ render_comment(comments) }}
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-    // 좋아요 기능
+<script>
+    // 좋아요 기능 (아이콘을 부트스트랩 아이콘으로 변경)
     function toggleLike(boardId) {
         fetch(`/board/like/${boardId}`, { method: 'POST' })
         .then(res => res.json())
@@ -106,9 +187,11 @@
                 const count = document.getElementById('like-count');
                 count.innerText = data.like_count;
                 if (data.is_liked) {
-                    icon.innerText = '❤️'; btn.classList.add('active');
+                    icon.innerHTML = '<i class="bi bi-heart-fill"></i>';
+                    btn.classList.add('active');
                 } else {
-                    icon.innerText = '🤍'; btn.classList.remove('active');
+                    icon.innerHTML = '<i class="bi bi-heart"></i>';
+                    btn.classList.remove('active');
                 }
             } else {
                 alert(data.message);
@@ -117,13 +200,12 @@
         });
     }
 
-    // 답글창 토글
+    // 답글창 토글 및 댓글 함수는 기존 로직 유지
     function toggleReplyForm(commentId) {
         const target = document.getElementById(`reply-form-${commentId}`);
         target.classList.toggle('d-none');
     }
 
-    // 댓글 및 대댓글 통합 등록 함수
     function submitComment(parentId) {
         const content = parentId
             ? document.getElementById(`reply-input-${parentId}`).value
@@ -137,20 +219,13 @@
         fetch(`/board/comment/{{ board.id }}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content: content,
-                parent_id: parentId
-            })
+            body: JSON.stringify({ content: content, parent_id: parentId })
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                location.reload(); // 성공 시 페이지 새로고침
-            } else {
-                alert(data.message);
-                if (data.message.includes("로그인")) location.href = "/login";
-            }
+            if (data.success) { location.reload(); }
+            else { alert(data.message); if (data.message.includes("로그인")) location.href = "/login"; }
         });
     }
-    </script>
+</script>
 {% endblock %}
