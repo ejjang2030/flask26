@@ -687,7 +687,7 @@ def library_list():
     files = fetch_query(sql)  # 프로젝트 공통 함수 활용
     return render_template('library.html', files=files)
 
-# 파일 업로드 (이름 중복 주의! 딱 하나만 있어야 함)
+# 파일 업로드
 @app.route('/library/upload', methods=['POST'])
 def library_upload():
     if 'user_id' not in session:
@@ -703,34 +703,47 @@ def library_upload():
     if file:
         original_name = file.filename
         ext = os.path.splitext(original_name)[1]
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        filename = secure_filename(f"{session['user_id']}_{timestamp}{ext}")
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # 밀리초까지 추가하여 중복 방지
+        # 파일명을 유저ID_시간.확장자 형태로 안전하게 생성
+        filename = f"{session['user_id']}_{timestamp}{ext}"
 
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(save_path)  # 서버 저장
 
         try:
-            # execute_query를 사용하여 DB 저장
             sql = "INSERT INTO library (member_id, filename, original_name) VALUES (%s, %s, %s)"
             execute_query(sql, (session['user_id'], filename, original_name))
             return f"<script>alert('업로드 완료!');location.href='/library';</script>"
         except Exception as e:
-            print(f"업로드 DB 에러: {e}")
-            return "<script>alert('DB 저장 중 오류 발생');history.back();</script>"
+            print(f"DB 저장 에러: {e}")
+            return "<script>alert('DB 저장 실패');history.back();</script>"
 
 # 파일 다운로드
 @app.route('/library/download/<int:file_id>')
 def library_download(file_id):
+    # DB에서 파일명 조회
     sql = "SELECT filename, original_name FROM library WHERE id = %s"
     file_data = fetch_query(sql, (file_id,), one=True)
 
-    if file_data:
-        return send_from_directory(
-            app.config['UPLOAD_FOLDER'],
-            file_data['filename'],
-            as_attachment=True,
-            download_name=file_data['original_name']
-        )
-    return "<script>alert('파일을 찾을 수 없습니다.');history.back();</script>"
+    if not file_data:
+        return "<script>alert('DB에 파일 정보가 없습니다.');history.back();</script>"
+
+    filename = file_data['filename']
+    original_name = file_data['original_name']
+
+    # 실제 서버 폴더에 파일이 있는지 확인
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    print(f"다운로드 시도 경로: {file_path}")  # 터미널에서 확인용
+
+    if not os.path.exists(file_path):
+        return f"<script>alert('서버에 실제 파일이 없습니다. (파일명: {filename})');history.back();</script>"
+
+    return send_from_directory(
+        app.config['UPLOAD_FOLDER'],
+        filename,
+        as_attachment=True,
+        download_name=original_name  # 원래 이름으로 다운로드
+    )
 
 # 파일 삭제
 @app.route('/library/delete/<int:file_id>', methods=['POST'])
