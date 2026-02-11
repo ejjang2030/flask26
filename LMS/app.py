@@ -1,4 +1,6 @@
+from datetime import datetime
 from dotenv import load_dotenv
+from flask import send_from_directory
 from werkzeug.utils import secure_filename
 
 load_dotenv()
@@ -588,77 +590,106 @@ def score_members():
     finally:
         conn.close()
 
+
 # ----------------------------------------------------------------------------------------------------------------------
-#                                              자료실 (파일 업로드)
+#                                               자료실 (파일 업로드)
 # ----------------------------------------------------------------------------------------------------------------------
 
-# 파일 저장 경로 설정 (static 폴더 안)
+# 파일 저장 경로 설정
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
-
-# 폴더가 없으면 자동 생성 (OS 오류 방지)
-if not os.path.exists(UPLOAD_FOLDER) :
-    os.makedirs(UPLOAD_FOLDER, exist_ok = True)
-
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# 자료실 메인 화면 (서브 메뉴 전용 경로)
+# 자료실 목록
 @app.route('/library')
-def library_list() :
-    if 'user_id' not in session :
+def library_list():
+    if 'user_id' not in session:
         return "<script>alert('로그인 후 이용 가능합니다.');location.href='/login';</script>"
 
-    # 폴더 내 파일 목록 읽기
-    try :
-        files = os.listdir(app.config['UPLOAD_FOLDER'])
-
-    except Exception as e :
-        print(f"파일 읽기 오류: {e}")
-
-        files = []
-
+    # fetch_query를 사용하면 dictionary=True 문제를 피하면서 깔끔하게 데이터를 가져올 수 있습니다.
+    sql = """
+        SELECT l.*, m.name as user_name 
+        FROM library l 
+        JOIN members m ON l.member_id = m.id 
+        ORDER BY l.id DESC
+    """
+    files = fetch_query(sql)  # 프로젝트 공통 함수 활용
     return render_template('library.html', files=files)
 
-# 파일 업로드
+# 파일 업로드 (이름 중복 주의! 딱 하나만 있어야 함)
 @app.route('/library/upload', methods=['POST'])
-def library_upload() :
-    if 'file' not in request.files :
-        return "<script>alert('파일이 존재하지 않습니다.');history.back();</script>"
+def library_upload():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if 'file' not in request.files:
+        return "<script>alert('파일이 없습니다.');history.back();</script>"
 
     file = request.files['file']
-    if file.filename == '' :
+    if file.filename == '':
         return "<script>alert('선택된 파일이 없습니다.');history.back();</script>"
 
-    if file :
+    if file:
+        original_name = file.filename
+        ext = os.path.splitext(original_name)[1]
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        filename = secure_filename(f"{session['user_id']}_{timestamp}{ext}")
 
-        # 안전한 파일명으로 변경 후 저장
-        filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        return f"<script>alert('{filename} 업로드가 완료되었습니다.');location.href='/library';</script>"
+        try:
+            # execute_query를 사용하여 DB 저장
+            sql = "INSERT INTO library (member_id, filename, original_name) VALUES (%s, %s, %s)"
+            execute_query(sql, (session['user_id'], filename, original_name))
+            return f"<script>alert('업로드 완료!');location.href='/library';</script>"
+        except Exception as e:
+            print(f"업로드 DB 에러: {e}")
+            return "<script>alert('DB 저장 중 오류 발생');history.back();</script>"
+
+# 파일 다운로드
+@app.route('/library/download/<int:file_id>')
+def library_download(file_id):
+    sql = "SELECT filename, original_name FROM library WHERE id = %s"
+    file_data = fetch_query(sql, (file_id,), one=True)
+
+    if file_data:
+        return send_from_directory(
+            app.config['UPLOAD_FOLDER'],
+            file_data['filename'],
+            as_attachment=True,
+            download_name=file_data['original_name']
+        )
+    return "<script>alert('파일을 찾을 수 없습니다.');history.back();</script>"
 
 # 파일 삭제
-@app.route('/library/delete/<filename>', methods=['POST'])
-def library_delete(filename) :
-    if 'user_id' not in session :
-        return "<script>alert('권한이 없습니다.');history.back();</script>"
+@app.route('/library/delete/<int:file_id>', methods=['POST'])
+def library_delete(file_id):
+    if 'user_id' not in session:
+        return "<script>alert('로그인이 필요합니다.');history.back();</script>"
 
-    # 보안을 위해 파일명 정제 (중요!)
-    filename = secure_filename(filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file_info = fetch_query("SELECT filename, member_id FROM library WHERE id = %s", (file_id,), one=True)
 
-    try :
+    if not file_info:
+        return "<script>alert('파일 정보를 찾을 수 없습니다.');history.back();</script>"
 
-        if os.path.exists(file_path) :
-            os.remove(file_path)  # 실제 파일 삭제
-            return f"<script>alert('{filename} 삭제가 완료되었습니다.');location.href='/library';</script>"
+    # 본인 확인
+    if file_info['member_id'] != session['user_id']:
+        return "<script>alert('본인만 삭제 가능합니다.');history.back();</script>"
 
-        else :
-            return "<script>alert('파일을 찾을 수 없습니다.');history.back();</script>"
+    try:
+        # 실제 파일 삭제
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_info['filename'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
-    except Exception as e :
-        print(f"파일 삭제 에러: {e}")
-        return "<script>alert('파일 삭제 도중 오류가 발생했습니다.');history.back();</script>"
+        # DB 삭제
+        execute_query("DELETE FROM library WHERE id = %s", (file_id,))
+        return "<script>alert('삭제 완료');location.href='/library';</script>"
+    except Exception as e:
+        print(f"삭제 에러: {e}")
+        return "<script>alert('삭제 처리 중 오류 발생');history.back();</script>"
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
