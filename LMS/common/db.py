@@ -10,6 +10,7 @@ DB_CONFIG = {
     'user': 'mbc',
     'password': '1234',
     'db': 'lms',
+    'port': 3306,
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }
@@ -19,6 +20,7 @@ TEACHERS_DB_CONFIG = {
     'user': 'mbc320',
     'password': '1234',
     'db': 'lms',
+    'port': 3306,
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }

@@ -25,9 +25,30 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/chat">랜덤채팅</a>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="scoreDropdown" role="button" data-bs-toggle="dropdown">
+                        성적관리
+                    </a>
+                    <ul class="dropdown-menu shadow">
+                        {# 1. 유저 권한으로 로그인 사용자가 볼 수 있는 메뉴 #}
+                        {% if session.get('user_role') == 'user' %}
+                            <li><a class="dropdown-item" href="/score/my">내 성적 조회</a></li>
+                        {% endif %}
+
+                        {# 2. 관리자/매니저만 볼 수 있는 메뉴 #}
+                        {% if session.get('user_role') in ('admin', 'manager') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">관리자 메뉴</h6></li>
+                            <li><a class="dropdown-item" href="/score/members">학생 성적 입력 (학생선택)</a></li>
+                            <li><a class="dropdown-item" href="/score/list">전체 성적 현황 (JOIN)</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="/mbti">개발자 MBTI 측정</a>
                 </li>
+
 <!--                    <li class="nav-item dropdown">-->
 <!--                        <a class="nav-link dropdown-toggle px-3" href="#" id="scoreDropdown" role="button" data-bs-toggle="dropdown">-->
 <!--                            성적관리-->

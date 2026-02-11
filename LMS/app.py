@@ -7,7 +7,7 @@ from functools import wraps
 import os
 from LMS.common.db import fetch_query, execute_query
 from LMS.common.session import Session
-from LMS.domain import Board
+from LMS.domain import Board, Score
 from math import ceil
 
 app = Flask(__name__)
@@ -347,6 +347,140 @@ def add_comment(board_id):
     execute_query(sql, (board_id, session['user_id'], parent_id, content))
 
     return jsonify({'success': True})
+
+@app.route('/score/add') # http://localhost:5000/score/add?uid=test1&name=test1
+def score_add():
+    if session.get('user_role') not in ('admin', 'manager'):
+        return '<script>alert("권한이 없습니다."); history.back();</script>'
+
+    # request.args는 url을 통해서 넘어오는 값 주소뒤에 ?K=V&K=V ......
+    target_uid = request.args.get('uid')
+    target_name = request.args.get('name')
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('SELECT id FROM members WHERE uid = %s', (target_uid,))
+            student = cursor.fetchone()
+
+            existing_score = None
+            if student:
+                cursor.execute('SELECT * FROM scores WHERE member_id = %s', (student['id'],))
+                row = cursor.fetchone()
+                if row:
+                    existing_score = Score.from_db(row)
+
+            return render_template('score_form.html', target_uid=target_uid, target_name=target_name, score=existing_score)
+    finally:
+        conn.close()
+
+@app.route('/score/save', methods=['POST'])
+def score_save():
+    if session.get('user_role') not in ('admin', 'manager'):
+        return "권한 오류", 403
+
+    target_uid = request.form.get('target_uid')
+    kor = int(request.form.get('korean', 0))
+    eng = int(request.form.get('english', 0))
+    math = int(request.form.get('math', 0))
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('SELECT id FROM members WHERE uid = %s', (target_uid,))
+            student = cursor.fetchone()
+            print(student) # 학번 출력
+            if not student:
+                return "<script>alert('존재하지 않는 학생입니다.'); history.back();</script>"
+
+            temp_score = Score(member_id=student['id'], kor=kor, eng=eng, math=math)
+            #              __init__.py
+
+            cursor.execute('SELECT id FROM scores WHERE member_id = %s', (student['id'],))
+            is_exist = cursor.fetchone() # 성적이 있으면 id가 나오고 없으면 None
+
+            if is_exist:
+                sql = """
+                    UPDATE scores SET korean = %s, english = %s, math = %s, total = %s, average = %s, grade = %s WHERE member_id = %s
+                """
+                cursor.execute(sql, (temp_score.kor, temp_score.eng, temp_score.math, temp_score.total, temp_score.avg, temp_score.grade, student['id']))
+            else:
+                sql = """
+                    INSERT INTO scores (member_id, korean, english, math, total, average, grade)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql, (student['id'], temp_score.kor, temp_score.eng, temp_score.math, temp_score.total, temp_score.avg, temp_score.grade))
+            conn.commit()
+            return f"<script>alert('{target_uid} 학생 성적 저장 완료!'); location.href = '/score/list';</script>"
+    finally:
+        conn.close()
+
+@app.route('/score/list') # http://localhost:5000/score/list -> get
+def score_list():
+    if session.get('user_role') not in ('admin', 'manager'):
+        return "<script>alert('권한이 없습니다.'); history.back();</script>"
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT m.name, m.uid, s.* FROM scores s
+                JOIN members m ON s.member_id = m.id
+                ORDER BY s.total DESC
+            """
+            cursor.execute(sql)
+            datas = cursor.fetchall()
+            print(f'sql 결과 : {datas}')
+
+            score_objects = []
+            for data in datas:
+                s = Score.from_db(data) # 직렬화 dict -> 객체로 만들어)
+                s.name = data['name']
+                s.uid = data['uid']
+                score_objects.append(s) # 객체를 리스트에 넣음
+
+            return render_template('score_list.html', scores=score_objects)
+            #                          프론트화면 ui에                    성적이 담긴 리스트 객체를 전달함!!
+    finally:
+        conn.close()
+
+@app.route('/score/members')
+def score_members():
+    if session.get('user_role') not in ('admin', 'manager'):
+        return "<script>alert('권한이 없습니다.'); history.back();</script>"
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT m.id, m.uid, m.name, s.id AS score_id
+                FROM members m
+                LEFT JOIN scores s ON m.id = s.member_id
+                WHERE m.role = 'user'
+                ORDER BY m.name ASC
+            """
+            cursor.execute(sql)
+            members = cursor.fetchall()
+            return render_template('score_member_list.html', members=members)
+    finally:
+        conn.close()
+
+@app.route('/score/my')
+def score_my():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT * FROM scores WHERE member_id = %s"
+            cursor.execute(sql, (session['user_id'],))
+            row = cursor.fetchone()
+
+            score = Score.from_db(row) if row else None
+            return render_template('score_my.html', score=score)
+    finally:
+        conn.close()
 
 @app.route('/')
 def index():

@@ -1,0 +1,79 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <h3 class="mb-0">개인 성적 통지표</h3>
+                <p class="mb-0 mt-2 opacity-75">{{ session['user_name'] }} 님 ({{ session['user_uid'] }})</p>
+            </div>
+
+            <div class="card-body p-5">
+                {% if score %}
+                    <div class="text-center mb-5">
+                        <h6 class="text-muted text-uppercase small fw-bold">종합 등급</h6>
+                        <h1 class="display-1 fw-bold 
+                            {{ 'text-success' if score.grade == 'A' 
+                               else 'text-primary' if score.grade == 'B' 
+                               else 'text-warning' if score.grade == 'C' 
+                               else 'text-danger' }}">
+                            {{ score.grade }}
+                        </h1>
+                    </div>
+
+                    <table class="table table-bordered text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="33%">국어</th>
+                                <th width="33%">영어</th>
+                                <th width="33%">수학</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="fs-4">
+                                <td>{{ score.kor }}</td>
+                                <td>{{ score.eng }}</td>
+                                <td>{{ score.math }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="row mt-4 g-2">
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light text-center">
+                                <small class="text-muted d-block">총점</small>
+                                <span class="h4 fw-bold">{{ score.total }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light text-center">
+                                <small class="text-muted d-block">평균</small>
+                                <span class="h4 fw-bold text-primary">{{ score.avg }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-end text-muted mt-4 small">
+                        발행일: {{ score.created_at.strftime('%Y-%m-%d') if score.created_at else '정보 없음' }}
+                    </p>
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-exclamation-circle text-muted" style="font-size: 3rem;"></i>
+                        <h4 class="mt-3 text-muted">등록된 성적 정보가 없습니다.</h4>
+                        <p class="text-muted">관리자에게 성적 입력을 요청하세요.</p>
+                        <a href="/" class="btn btn-outline-secondary mt-3">홈으로 돌아가기</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card-footer bg-white border-0 text-center pb-4">
+                <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer"></i> 성적표 인쇄하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

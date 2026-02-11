@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="mt-4">
+    <h3><i class="bi bi-person-check"></i> 성적 입력 대상 선택</h3>
+    <p class="text-muted">성적이 이미 등록된 학생은 '수정'으로 표시됩니다.</p>
+    <hr>
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>이름</th>
+                <th>아이디</th>
+                <th>상태</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in members %}
+            <tr>
+                <td><strong>{{ m.name }}</strong></td>
+                <td>{{ m.uid }}</td>
+                <td>
+                    {% if m.score_id %}
+                        <span class="badge bg-success">등록 완료</span>
+                    {% else %}
+                        <span class="badge bg-secondary">미등록</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if m.score_id %}
+                        <a href="/score/add?uid={{ m.uid }}&name={{ m.name }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-pencil-square"></i> 성적 수정
+                        </a>
+                    {% else %}
+                        <a href="/score/add?uid={{ m.uid }}&name={{ m.name }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle"></i> 성적 입력
+                        </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

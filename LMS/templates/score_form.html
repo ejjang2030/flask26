@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0">
+                    {% if score %}성적 수정{% else %}성적 신규 입력{% endif %}
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form action="/score/save" method="POST">
+                    <div class="mb-4 text-center">
+                        <span class="badge bg-secondary">대상 학생</span>
+                        <h3 class="mt-2">{{ target_name }} <small class="text-muted">({{ target_uid }})</small></h3>
+                        <input type="hidden" name="target_uid" value="{{ target_uid }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-primary fw-bold">국어 점수</label>
+                        <input type="number" name="korean" class="form-control form-control-lg"
+                               value="{{ score.kor if score else '' }}" min="0" max="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-success fw-bold">영어 점수</label>
+                        <input type="number" name="english" class="form-control form-control-lg"
+                               value="{{ score.eng if score else '' }}" min="0" max="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning fw-bold">수학 점수</label>
+                        <input type="number" name="math" class="form-control form-control-lg"
+                               value="{{ score.math if score else '' }}" min="0" max="100" required>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            {% if score %}수정 내용 저장{% else %}성적 등록하기{% endif %}
+                        </button>
+                        <a href="/score/members" class="btn btn-link text-muted mt-2 text-decoration-none">취소하고 돌아가기</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

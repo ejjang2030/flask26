@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <h2 class="mb-4">성적 결과 목록</h2>
+    <table class="table table-bordered text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>이름</th>
+                <th>국어</th>
+                <th>영어</th>
+                <th>수학</th>
+                <th>총점</th>
+                <th>평균</th>
+                <th>등급</th>
+                <th>날짜</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in scores %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.kor }}</td>
+                <td>{{ s.eng }}</td>
+                <td>{{ s.math }}</td>
+                <td>{{ s.total }}</td>
+                <td>{{ s.avg }}</td>
+                <td><span class="badge {{ 'bg-success' if s.grade == 'A' else 'bg-secondary' }}">{{ s.grade }}</span></td>
+                <td>{{ s.created_at.strftime('%Y-%m-%d') if s.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="text-end">
+        <a href="members" class="btn btn-primary">성적 입력하기</a>
+    </div>
+{% endblock %}
