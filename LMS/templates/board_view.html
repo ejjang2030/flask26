@@ -29,21 +29,47 @@
         min-height: 250px;
     }
 
-    /* 좋아요 버튼 커스텀 */
-    #like-btn {
+    /* --- [수정] 좋아요/싫어요 버튼 스타일 --- */
+    .reaction-btn {
         transition: all 0.3s ease;
+        border-radius: 50px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* 좋아요 버튼 */
+    #like-btn {
         border: 2px solid #ffeded;
         background: #fff5f5;
         color: #ff4d4d;
-        border-radius: 50px;
-        padding: 12px 30px;
     }
+    #like-btn:hover { background-color: #ffe0e0; }
+
     #like-btn.active {
         background: #ff4d4d;
         color: white;
         border-color: #ff4d4d;
         box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
     }
+
+    /* 싫어요 버튼 */
+    #dislike-btn {
+        border: 2px solid #e9ecef;
+        background: #f8f9fa;
+        color: #495057;
+    }
+    #dislike-btn:hover { background-color: #e2e6ea; }
+
+    #dislike-btn.active {
+        background: #495057; /* 짙은 회색 */
+        color: white;
+        border-color: #495057;
+        box-shadow: 0 5px 15px rgba(73, 80, 87, 0.3);
+    }
+    /* ------------------------------------- */
 
     /* 댓글 섹션 */
     .comment-card {
@@ -78,44 +104,55 @@
                     </div>
                 </div>
                 <div>
+                    <h2 class="fw-bold mt-2" style="letter-spacing: -1px; line-height: 1.4;">{{ board.title }}</h2>
+                </div>
 
-        <h2 class="fw-bold mt-2" style="letter-spacing: -1px; line-height: 1.4;">{{ board.title }}</h2>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background-color: #f8f9fa;">
-        <div class="d-flex align-items-center">
-            <div class="bg-white shadow-sm rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; border: 1px solid #eee;">
-                <i class="bi bi-person-fill text-secondary fs-5"></i>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background-color: #f8f9fa;">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white shadow-sm rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; border: 1px solid #eee;">
+                            <i class="bi bi-person-fill text-secondary fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">{{ board.writer_name }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ board.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <div class="text-center">
+                            <div class="text-muted small">조회수</div>
+                            <div class="fw-bold"><i class="bi bi-eye me-1"></i>{{ board.visits }}</div>
+                        </div>
+                        <div class="vr"></div>
+                        <div class="text-center">
+                            <div class="text-muted small">좋아요</div>
+                            <div class="fw-bold text-danger"><i class="bi bi-heart-fill me-1"></i>{{ board.likes }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div class="fw-bold text-dark">{{ board.writer_name }}</div>
-                <div class="text-muted" style="font-size: 0.75rem;">{{ board.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-            </div>
-        </div>
-        <div class="d-flex gap-3">
-            <div class="text-center">
-                <div class="text-muted small">조회수</div>
-                <div class="fw-bold"><i class="bi bi-eye me-1"></i>{{ board.visits }}</div>
-            </div>
-            <div class="vr"></div> <div class="text-center">
-                <div class="text-muted small">좋아요</div>
-                <div class="fw-bold text-danger"><i class="bi bi-heart-fill me-1"></i>{{ board.likes }}</div>
-            </div>
-        </div>
-    </div>
-</div>
 
             <div class="view-content">
                 {{ board.content | safe }}
             </div>
 
-            <div class="text-center mb-3">
-                <button id="like-btn" class="btn btn-lg fw-bold {% if user_liked %}active{% endif %}"
+            <div class="d-flex justify-content-center gap-3 mb-4">
+
+                <button id="like-btn" class="btn btn-lg fw-bold reaction-btn {% if user_liked %}active{% endif %}"
                         onclick="toggleLike({{ board.id }})">
-                    <span id="like-icon" class="me-1">{% if user_liked %}<i class="bi bi-heart-fill"></i>{% else %}<i class="bi bi-heart"></i>{% endif %}</span>
-                    좋아요 <span id="like-count" class="ms-1">{{ board.likes }}</span>
+                    <i class="bi {% if user_liked %}bi-heart-fill{% else %}bi-heart{% endif %}" id="like-icon"></i>
+                    <span>좋아요</span>
+                    <span id="like-count" class="ms-1">{{ board.likes }}</span>
                 </button>
+
+                <button id="dislike-btn" class="btn btn-lg fw-bold reaction-btn {% if user_disliked %}active{% endif %}"
+                        onclick="toggleDislike({{ board.id }})">
+                    <i class="bi {% if user_disliked %}bi-hand-thumbs-down-fill{% else %}bi-hand-thumbs-down{% endif %}" id="dislike-icon"></i>
+                    <span>싫어요</span>
+                    <span id="dislike-count" class="ms-1">{{ board.dislikes }}</span>
+                </button>
+
             </div>
+
             <div class="d-flex justify-content-center gap-2 mb-5">
                 <a href="/board" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-white" style="background-color: var(--communa-teal);">목록으로 돌아가기</a>
                 {% if session.get('user_id') == board.member_id %}
@@ -176,7 +213,7 @@
 </div>
 
 <script>
-    // 좋아요 기능 (아이콘을 부트스트랩 아이콘으로 변경)
+    // 좋아요 기능
     function toggleLike(boardId) {
         fetch(`/board/like/${boardId}`, { method: 'POST' })
         .then(res => res.json())
@@ -185,13 +222,15 @@
                 const btn = document.getElementById('like-btn');
                 const icon = document.getElementById('like-icon');
                 const count = document.getElementById('like-count');
+
                 count.innerText = data.like_count;
+
                 if (data.is_liked) {
-                    icon.innerHTML = '<i class="bi bi-heart-fill"></i>';
                     btn.classList.add('active');
+                    icon.className = 'bi bi-heart-fill';
                 } else {
-                    icon.innerHTML = '<i class="bi bi-heart"></i>';
                     btn.classList.remove('active');
+                    icon.className = 'bi bi-heart';
                 }
             } else {
                 alert(data.message);
@@ -200,12 +239,40 @@
         });
     }
 
-    // 답글창 토글 및 댓글 함수는 기존 로직 유지
+    // 싫어요 기능
+    function toggleDislike(boardId) {
+        fetch(`/board/dislike/${boardId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const btn = document.getElementById('dislike-btn');
+                const icon = document.getElementById('dislike-icon');
+                const count = document.getElementById('dislike-count');
+
+                count.innerText = data.dislike_count;
+
+                if (data.is_disliked) {
+                    btn.classList.add('active');
+                    icon.className = 'bi bi-hand-thumbs-down-fill';
+                } else {
+                    btn.classList.remove('active');
+                    icon.className = 'bi bi-hand-thumbs-down';
+                }
+            } else {
+                alert(data.message);
+                if (data.message.includes("로그인")) location.href = "/login";
+            }
+        })
+        .catch(err => console.error("Error:", err));
+    }
+
+    // 답글창 토글
     function toggleReplyForm(commentId) {
         const target = document.getElementById(`reply-form-${commentId}`);
         target.classList.toggle('d-none');
     }
 
+    // 댓글 등록
     function submitComment(parentId) {
         const content = parentId
             ? document.getElementById(`reply-input-${parentId}`).value

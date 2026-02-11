@@ -254,6 +254,7 @@ def board_write():
         # except Exception as e:
         #     print(e)
 
+
 @app.route('/board')
 def board_list():
     page = request.args.get('page', 1, type=int)
@@ -265,17 +266,13 @@ def board_list():
     total_count = fetch_query(count_sql)[0]['cnt']
     total_pages = ceil(total_count / per_page)
 
-    # 소현
-    # 2. SQL 수정: ORDER BY 절에 b.is_pinned DESC 추가
-    # is_pinned가 1(고정)인 데이터가 0(일반)보다 먼저 정렬됩니다.
-    #
-
-    # [개선] 좋아요 수와 댓글 수를 각각 집계하기 위해 DISTINCT 또는 서브쿼리 사용
+    # [수정] 싫어요(dislike_count) 서브쿼리 추가
     sql = f"""
         SELECT 
             b.*, 
             m.name as writer_name,
             (SELECT COUNT(*) FROM board_likes WHERE board_id = b.id) as like_count,
+            (SELECT COUNT(*) FROM board_dislikes WHERE board_id = b.id) as dislike_count,
             (SELECT COUNT(*) FROM board_comments WHERE board_id = b.id) as comment_count
         FROM boards b
         JOIN members m ON b.member_id = m.id
@@ -288,12 +285,12 @@ def board_list():
     for row in rows:
         board = Board.from_db(row)
         board.like_count = row['like_count']
-        board.comment_count = row['comment_count'] # 댓글 수 할당
-        #Board 객체에 is_pinned 속성이 없어서 추가
+        board.dislike_count = row['dislike_count']  # [추가] 싫어요 수 할당
+        board.comment_count = row['comment_count']
+
+        # Board 객체에 is_pinned 속성이 없어서 추가
         board.is_pinned = row.get('is_pinned', 0)
         boards.append(board)
-
-    #
 
     pagination = {
         'page': page,
@@ -305,16 +302,16 @@ def board_list():
     }
 
     return render_template('board_list.html', boards=boards, pagination=pagination)
-
 # 게시물 자세히 보기
 @app.route('/board/view/<int:board_id>')
 def board_view(board_id):
-    # 1. 조회수 증가 (기존 동일)
+    # 1. 조회수 증가
     try:
         execute_query("UPDATE boards SET visits = visits + 1 WHERE id = %s", (board_id,))
-    except Exception as e: print(e)
+    except Exception as e:
+        print(f"조회수 증가 오류: {e}")
 
-    # 2. 게시글 상세 정보 (기존 동일)
+    # 2. 게시글 상세 정보 가져오기
     sql = """
         SELECT b.*, m.name as writer_name, m.uid as writer_uid
         FROM boards b
@@ -325,15 +322,35 @@ def board_view(board_id):
     if not row:
         return '<script>alert("존재하지 않는 게시글입니다."); history.back();</script>'
 
-    # 3. 좋아요 정보 조회 (기존 동일)
-    like_count = fetch_query("SELECT COUNT(*) as cnt FROM board_likes WHERE board_id = %s", (board_id,), one=True)['cnt']
-    user_liked = False
-    if 'user_id' in session:
-        if fetch_query("SELECT 1 FROM board_likes WHERE board_id = %s AND member_id = %s", (board_id, session['user_id']), one=True):
-            user_liked = True
+    # 3. [수정] 좋아요 & 싫어요 정보 조회
+    # 3-1. 전체 카운트 조회
+    like_count = fetch_query("SELECT COUNT(*) as cnt FROM board_likes WHERE board_id = %s", (board_id,), one=True)[
+        'cnt']
+    dislike_count = \
+    fetch_query("SELECT COUNT(*) as cnt FROM board_dislikes WHERE board_id = %s", (board_id,), one=True)['cnt']
 
-    # 4. [추가] 댓글 및 대댓글 목록 가져오기
-    # 정렬 핵심: 부모 댓글 id 순서로 묶되, 그 안에서 생성일 순으로 정렬
+    # 3-2. 현재 로그인한 사용자의 클릭 여부 확인
+    user_liked = False
+    user_disliked = False
+
+    if 'user_id' in session:
+        # DB의 member_id(PK)를 정확히 알기 위해 user_id(문자열)로 조회
+        member_info = fetch_query("SELECT id FROM members WHERE id = %s", (session['user_id'],), one=True)
+
+        if member_info:
+            member_pk = member_info['id']
+
+            # 좋아요 여부 체크
+            if fetch_query("SELECT 1 FROM board_likes WHERE board_id = %s AND member_id = %s", (board_id, member_pk),
+                           one=True):
+                user_liked = True
+
+            # 싫어요 여부 체크 (추가됨)
+            if fetch_query("SELECT 1 FROM board_dislikes WHERE board_id = %s AND member_id = %s", (board_id, member_pk),
+                           one=True):
+                user_disliked = True
+
+    # 4. 댓글 및 대댓글 목록 가져오기 (계층형 구조)
     comment_sql = """
             SELECT c.*, m.name as writer_name, m.uid as writer_uid
             FROM board_comments c
@@ -343,7 +360,7 @@ def board_view(board_id):
         """
     all_comments = fetch_query(comment_sql, (board_id,))
 
-    # 2. 계층형 트리 구조로 가공
+    # 딕셔너리를 활용해 트리 구조로 변환
     comment_dict = {c['id']: {**c, 'children': []} for c in all_comments}
     root_comments = []
 
@@ -356,12 +373,15 @@ def board_view(board_id):
             # 부모가 없다면 최상위(Root) 댓글
             root_comments.append(c_data)
 
+    # 5. Board 객체 생성 및 데이터 주입
     board = Board.from_db(row)
-    board.likes = like_count
+    board.likes = like_count  # 좋아요 수 주입
+    board.dislikes = dislike_count  # [추가] 싫어요 수 주입 (Board 클래스에 필드가 없어도 파이썬이라 들어갑니다)
 
     return render_template('board_view.html',
                            board=board,
                            user_liked=user_liked,
+                           user_disliked=user_disliked,  # [추가] 템플릿으로 전달
                            comments=root_comments)
 
 # 게시물 수정
@@ -444,6 +464,55 @@ def board_like_toggle(board_id):
 
     except Exception as e:
         # 이 부분이 중요합니다! 에러가 나더라도 클라이언트에게 JSON을 돌려줘야 합니다.
+        print(f"Database Error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        }), 500
+
+
+@app.route('/board/dislike/<int:board_id>', methods=['POST'])
+def board_dislike_toggle(board_id):
+    # 1. 로그인 체크
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
+
+    try:
+        # 2. 게시글 존재 확인
+        board = fetch_query("SELECT id FROM boards WHERE id = %s", (board_id,), one=True)
+        if not board:
+            return jsonify({'success': False, 'message': '존재하지 않는 게시글입니다.'}), 404
+
+        # 3. 싫어요 상태 확인
+        check_sql = "SELECT id FROM board_dislikes WHERE board_id = %s AND member_id = %s"
+
+        # session['user_id']가 DB의 members.id(PK)와 일치한다고 가정합니다.
+        # (만약 session에 문자열 ID가 들어있다면, 여기서 member_id를 조회하는 로직이 추가로 필요할 수 있습니다)
+        already_disliked = fetch_query(check_sql, (board_id, session['user_id']), one=True)
+
+        if already_disliked:
+            # 이미 싫어요를 눌렀다면 -> 삭제 (취소)
+            execute_query("DELETE FROM board_dislikes WHERE board_id = %s AND member_id = %s",
+                          (board_id, session['user_id']))
+            is_disliked = False
+        else:
+            # 안 눌렀다면 -> 추가 (싫어요)
+            execute_query("INSERT INTO board_dislikes (board_id, member_id) VALUES (%s, %s)",
+                          (board_id, session['user_id']))
+            is_disliked = True
+
+        # 4. 개수 집계 (board_dislikes 테이블 카운트)
+        count_res = fetch_query("SELECT COUNT(*) as cnt FROM board_dislikes WHERE board_id = %s", (board_id,), one=True)
+        dislike_count = count_res['cnt'] if count_res else 0
+
+        return jsonify({
+            'success': True,
+            'is_disliked': is_disliked,
+            'dislike_count': dislike_count
+        })
+
+    except Exception as e:
+        # 에러 발생 시 JSON 응답 반환
         print(f"Database Error: {e}")
         return jsonify({
             'success': False,
@@ -694,6 +763,8 @@ def library_delete(file_id):
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------
+
+
 
 @app.route('/')
 def index():
