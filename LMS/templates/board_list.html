@@ -6,6 +6,8 @@
     :root {
         --communa-teal: #20828A;
         --communa-light-teal: rgba(32, 130, 138, 0.1);
+        --communa-hover: #f0fdfd;
+        --notice-bg: #f0f7f7; /* 공지사항 배경색 */
     }
 
     /* 게시판 컨테이너 */
@@ -19,30 +21,65 @@
     /* 테이블 헤더 */
     .table thead th {
         border-top: none;
-        background-color: #fcfdfe;
-        color: #495057;
+        border-bottom: 2px solid #e9ecef;
+        background-color: #fff;
+        color: #20828A;
         text-transform: uppercase;
         font-size: 0.85rem;
-        letter-spacing: 1px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
         padding: 15px;
     }
 
-    /* 테이블 행 애니메이션 */
+    /* 테이블 행 공통 */
     .table tbody tr {
         transition: all 0.2s ease;
         cursor: pointer;
+        border-bottom: 1px solid #f1f3f5;
     }
 
     .table tbody tr:hover {
-        background-color: #f8fbfa !important;
+        /* 호버 시 배경색도 !important로 강제해야 부트스트랩을 이깁니다 */
+        background-color: var(--communa-hover) !important;
+        --bs-table-accent-bg: var(--communa-hover) !important;
         transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
     }
 
-    /* 제목 링크 스타일 (브랜드 컬러 적용) */
-    .title-link {
+    /* --- [수정됨] 공지사항 행 스타일 (부트스트랩 무시하고 강제 적용) --- */
+    .table tbody tr.notice-row {
+        background-color: var(--notice-bg) !important;
+        --bs-table-bg: var(--notice-bg); /* 부트스트랩 5 변수 대응 */
+    }
+
+    .table tbody tr.notice-row > td {
+        background-color: var(--notice-bg) !important;
+        box-shadow: inset 0 0 0 9999px var(--notice-bg) !important; /* 가장 강력한 한 방 */
         font-weight: 500;
+        color: #2c3e50;
+    }
+    /* ----------------------------------------------------------- */
+
+    /* 공지 배지 스타일 */
+    .badge-notice {
+        background-color: #ff6b6b;
+        color: white;
+        font-weight: 500;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+
+    /* 제목 링크 스타일 */
+    .title-link {
         color: #212529;
+        text-decoration: none;
         transition: color 0.2s;
+        display: block;
+    }
+
+    .notice-row .title-link {
+        color: #1c747b;
     }
 
     .table tr:hover .title-link {
@@ -50,16 +87,27 @@
         text-decoration: underline !important;
     }
 
-    /* 댓글 배지 (브랜드 컬러) */
-    .comment-badge {
+    /* 댓글 수 배지 */
+    .comment-count {
         font-size: 0.75rem;
-        font-weight: 600;
-        background-color: var(--communa-light-teal);
         color: var(--communa-teal);
-        border: none;
+        font-weight: 600;
+        margin-left: 4px;
     }
 
-    /* 페이지네이션 커스텀 (브랜드 컬러 적용) */
+    /* 좋아요 배지 */
+    .like-badge {
+        font-size: 0.8rem;
+        color: #e03131;
+        background-color: #fff5f5;
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid #ffc9c9;
+        display: inline-block;
+        min-width: 60px;
+    }
+
+    /* 페이지네이션 커스텀 */
     .pagination .page-item.active .page-link {
         background-color: var(--communa-teal) !important;
         border-color: var(--communa-teal) !important;
@@ -67,7 +115,9 @@
     }
 
     .pagination .page-link {
-        background-color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        margin: 0 2px;
         color: #495057;
     }
 
@@ -76,9 +126,10 @@
         color: var(--communa-teal);
     }
 
-    /* 상단 알림창 테마 */
+    /* 상단 알림창 */
     .alert-communa {
-        background-color: #f0f7f7;
+        background-color: var(--notice-bg);
+        border: 1px solid #e3fafc;
         border-radius: 1rem;
     }
 </style>
@@ -91,15 +142,15 @@
                 <h2 class="fw-bold text-dark mb-1">자유 게시판</h2>
                 <p class="text-muted mb-0">Communa 식구들의 다양한 이야기를 나누는 공간입니다.</p>
             </div>
-            <a href="/board/write" class="btn text-white px-4 py-2 rounded-pill shadow-sm" style="background-color: var(--communa-teal);">
+            <a href="/board/write" class="btn text-white px-4 py-2 rounded-pill shadow-sm hover-effect" style="background-color: var(--communa-teal); transition: 0.3s;">
                 <i class="bi bi-pencil-square me-1"></i> 새 글 쓰기
             </a>
         </div>
 
-        <div class="alert border-0 alert-communa p-4 mb-4 d-flex align-items-center">
+        <div class="alert alert-communa p-4 mb-4 d-flex align-items-center shadow-sm">
             <div class="fs-1 me-4">📢</div>
             <div>
-                <h6 class="fw-bold mb-1" style="color: #1a6d74;">자유게시판 가이드</h6>
+                <h6 class="fw-bold mb-1" style="color: var(--communa-teal);">자유게시판 가이드</h6>
                 <p class="mb-0 text-muted small">
                     일상, 질문, 건의사항 등 무엇이든 좋습니다. 타인을 배려하는 마음으로 소통해 주세요!
                 </p>
@@ -112,110 +163,98 @@
                     <thead>
                         <tr>
                             <th class="text-center" style="width: 80px;">번호</th>
-                            <th style="width: 45%;">제목</th>
-                            <th class="text-center">작성자</th>
-                            <th class="text-center">날짜</th>
-                            <th class="text-center">조회</th>
-                            <th class="text-center">좋아요</th>
+                            <th style="width: 50%;">제목</th>
+                            <th class="text-center" style="width: 15%;">작성자</th>
+                            <th class="text-center" style="width: 15%;">날짜</th>
+                            <th class="text-center" style="width: 10%;">조회</th>
+                            <th class="text-center" style="width: 10%;">좋아요</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!--소현-->
                         {% for board in boards %}
-                        <tr class="{{ 'table-primary' if board.is_pinned == 1 else '' }}">
-                            <td>
+                        <tr class="{{ 'notice-row' if board.is_pinned == 1 else '' }}" onclick="location.href='/board/view/{{ board.id }}'">
+
+                            <td class="text-center">
                                 {% if board.is_pinned == 1 %}
-                                    <span class="badge bg-danger">공지</span>
+                                    <span class="badge badge-notice">공지</span>
                                 {% else %}
-                                    {{ board.id }}
+                                    <span class="text-muted small">{{ board.id }}</span>
                                 {% endif %}
                             </td>
 
                             <td>
-                                <a href="/board/view/{{ board.id }}" class="text-decoration-none title-link d-inline-block text-truncate align-middle" style="max-width: 350px;">
-                                    {{ board.title }}
-                                </a>
-                               [{{ board.comment_count }}]</td>
-                            <td class="text-center small">{{ board.writer_name }}</td>
+                                <div class="d-flex align-items-center">
+                                    {% if board.is_pinned == 1 %}
+                                        <i class="bi bi-megaphone-fill me-2 text-danger small"></i> {% endif %}
+
+                                    <a href="/board/view/{{ board.id }}" class="title-link d-inline-block text-truncate" style="max-width: 380px;">
+                                        {{ board.title }}
+                                    </a>
+
+                                    {% if board.comment_count > 0 %}
+                                        <span class="comment-count">[{{ board.comment_count }}]</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <td class="text-center">
+                                <span class="small fw-medium text-dark">{{ board.writer_name }}</span>
+                            </td>
+
                             <td class="text-center text-muted small">
                                 {{ board.created_at.strftime('%Y-%m-%d') if board.created_at }}
                             </td>
+
                             <td class="text-center small">
                                 <span class="text-secondary">{{ board.visits }}</span>
                             </td>
-                            <td class="text-center">
-                                <span class="badge bg-white text-danger border border-danger-subtle rounded-pill fw-normal px-3 py-2">
-                                    ❤️ {{ board.like_count }}
-                                </span>
-                            </td>
-                        </tr>
-                        <!---->
 
-                        {% endfor %}
-
-                        {% for board in boards %}
-                        <tr onclick="location.href='/board/view/{{ board.id }}'">
-                            <td class="text-center text-muted small">{{ board.id }}</td>
-                            <td>
-                                <a href="/board/view/{{ board.id }}" class="text-decoration-none title-link d-inline-block text-truncate align-middle" style="max-width: 350px;">
-                                    {{ board.title }}
-                                </a>
-                                {% if board.comment_count > 0 %}
-                                <span class="badge comment-badge ms-1">
-                                    {{ board.comment_count }}
-                                </span>
-                                {% endif %}
-                            </td>
                             <td class="text-center">
-                                <span class="fw-medium">{{ board.writer_name }}</span>
-                            </td>
-                            <td class="text-center text-muted small">
-                                {{ board.created_at.strftime('%Y-%m-%d') if board.created_at }}
-                            </td>
-                            <td class="text-center small">
-                                <span class="text-secondary">{{ board.visits }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-white text-danger border border-danger-subtle rounded-pill fw-normal px-3 py-2">
+                                <span class="like-badge">
                                     ❤️ {{ board.like_count }}
                                 </span>
                             </td>
                         </tr>
                         {% endfor %}
+
+                        {% if not boards %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                아직 등록된 게시글이 없습니다. 첫 번째 글을 작성해보세요! 📝
+                            </td>
+                        </tr>
+                        {% endif %}
+
                     </tbody>
                 </table>
             </div>
-            <nav aria-label="Page navigation" class="mt-4">
-              <ul class="pagination justify-content-center">
 
+            <nav aria-label="Page navigation" class="mt-5">
+              <ul class="pagination justify-content-center">
                 {# 1. 이전 버튼 #}
                 <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-                  <a class="page-link"
-                     href="{{ url_for('board_list', page=pagination.prev_num) if pagination.has_prev else '#' }}"
-                     aria-label="Previous">
+                  <a class="page-link shadow-sm" href="{{ url_for('board_list', page=pagination.prev_num) if pagination.has_prev else '#' }}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                   </a>
                 </li>
 
-                {# 2. 페이지 번호 반복문 #}
+                {# 2. 페이지 번호 #}
                 {% for p in range(1, pagination.total_pages + 1) %}
                   <li class="page-item {{ 'active' if p == pagination.page }}">
-                    <a class="page-link" href="{{ url_for('board_list', page=p) }}">{{ p }}</a>
+                    <a class="page-link shadow-sm" href="{{ url_for('board_list', page=p) }}">{{ p }}</a>
                   </li>
                 {% endfor %}
 
                 {# 3. 다음 버튼 #}
                 <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-                  <a class="page-link"
-                     href="{{ url_for('board_list', page=pagination.next_num) if pagination.has_next else '#' }}"
-                     aria-label="Next">
+                  <a class="page-link shadow-sm" href="{{ url_for('board_list', page=pagination.next_num) if pagination.has_next else '#' }}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                   </a>
                 </li>
-
               </ul>
             </nav>
-            </div>
+
+        </div>
     </div>
 </div>
 {% endblock %}
