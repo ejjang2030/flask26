@@ -1,4 +1,9 @@
+
 from datetime import datetime
+
+from ssl import socket_error
+
+
 from dotenv import load_dotenv
 from flask import send_from_directory
 from werkzeug.utils import secure_filename
@@ -18,6 +23,8 @@ from LMS.common.db import fetch_query, execute_query
 from LMS.common.session import Session
 from LMS.domain import Board, Score
 from math import ceil
+
+
 
 app = Flask(__name__)
 
@@ -783,6 +790,7 @@ def library_delete(file_id):
         print(f"삭제 에러: {e}")
         return "<script>alert('삭제 처리 중 오류 발생');history.back();</script>"
 
+<<<<<<< Updated upstream
 # ----------------------------------------------------------------------------------------------------------------------
 #                                         오늘의 운세 / 내일의 운세 (띠별)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -897,12 +905,90 @@ def get_db_fortune(zodiac_name, target_date):
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------
+=======
+
+#--------------------------------------------------
+#               랜덤챗
+#--------------------------------------------------
+import uuid
+from flask_socketio import SocketIO, join_room, leave_room, emit
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key'  # 세션/보안용 키 (필수)
+socketio = SocketIO(app)
+
+# -----------------------------------------------------------------------
+#                               랜덤 채팅 로직
+# -----------------------------------------------------------------------
+
+# 대기열: 접속해서 매칭을 기다리는 유저들의 request.sid(고유ID) 저장
+waiting_users = []
+>>>>>>> Stashed changes
 
 
+@app.route('/chat')
+def chat():
+    return render_template('chat.html')
+
+
+@socketio.on('join')
+def on_join():
+    user_id = request.sid
+
+    # 대기열에 본인이 이미 있다면 중복 추가 방지
+    if user_id in waiting_users:
+        return
+
+    if waiting_users:
+        # 대기자가 있으면 첫 번째 대기자와 매칭
+        peer_id = waiting_users.pop(0)
+        room_id = str(uuid.uuid4())  # 랜덤 방 ID 생성
+
+        # 두 유저를 같은 방으로 입장시킴
+        join_room(room_id, sid=user_id)
+        join_room(room_id, sid=peer_id)
+
+        # 두 유저에게 매칭 성공과 방 번호를 알림
+        emit('matched', {'room': room_id}, room=room_id)
+        print(f"매칭 성공! 방 번호: {room_id}")
+    else:
+        # 대기자가 없으면 대기열에 추가
+        waiting_users.append(user_id)
+        emit('waiting', {'msg': '상대방을 기다리는 중...'})
+        print(f"대기열 추가: {user_id}")
+
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    room = data.get('room')
+    msg = data.get('msg')
+    # 내가 보낸 메시지를 해당 방에 있는 모든 사람(나 포함)에게 전달
+    emit('receive_message', {'msg': msg, 'sender': request.sid}, room=room)
+
+
+@socketio.on('disconnect')
+def on_disconnect():
+    user_id = request.sid
+    # 대기 중에 나갔다면 대기열에서 제거
+    if user_id in waiting_users:
+        waiting_users.remove(user_id)
+    print(f"접속 종료: {user_id}")
+
+
+# -----------------------------------------------------------------------
+#                               플라스크 실행
+# -----------------------------------------------------------------------
 
 @app.route('/')
 def index():
     return render_template('main.html')
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv('FLASK_APP_PORT'), debug=True)
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=int(os.getenv('FLASK_APP_PORT', 5000)),
+        debug=True,
+        allow_unsafe_werkzeug=True
+    )
