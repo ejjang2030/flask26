@@ -5,6 +5,11 @@ from werkzeug.utils import secure_filename
 
 load_dotenv()
 
+import traceback
+import requests
+from bs4 import BeautifulSoup
+from flask_caching import Cache
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -15,6 +20,11 @@ from LMS.domain import Board, Score
 from math import ceil
 
 app = Flask(__name__)
+
+# 띠별 운세 확인 시 필요
+# 캐시 설정 (하루 24시간 동안 보관)
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
 
 FLASK_APP_KEY = os.getenv('FLASK_APP_KEY')
 app.secret_key = FLASK_APP_KEY
@@ -772,6 +782,117 @@ def library_delete(file_id):
     except Exception as e:
         print(f"삭제 에러: {e}")
         return "<script>alert('삭제 처리 중 오류 발생');history.back();</script>"
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                         오늘의 운세 / 내일의 운세 (띠별)
+# ----------------------------------------------------------------------------------------------------------------------
+
+# 띠별 운세 확인
+@app.route('/fortune', methods=['GET', 'POST'])
+def fortune():
+    if not session.get('user_id'):
+        return "<script>alert('로그인 후 이용 가능합니다.'); location.href='/login';</script>"
+
+    data = None
+
+    if request.method == 'POST':
+        try:
+            year = int(request.form.get('year'))
+            month = int(request.form.get('month'))
+            day = int(request.form.get('day'))
+
+            # 1. 띠 계산
+            zodiacs = ["원숭이띠", "닭띠", "개띠", "돼지띠", "쥐띠", "소띠", "호랑이띠", "토끼띠", "용띠", "뱀띠", "말띠", "양띠"]
+            user_zodiac = zodiacs[year % 12]
+
+            # 2. 나이 계산 (현재 2026년 기준)
+            age = 2026 - year + 1
+
+            # 3. 오늘/내일 날짜 설정
+            today_date = datetime.now().date()
+            tomorrow_date = today_date + timedelta(days=1)
+
+            # 4. DB/크롤링 연동 로직 호출
+            today_content = get_db_fortune(user_zodiac, today_date)
+            tomorrow_content = get_db_fortune(user_zodiac, tomorrow_date)
+
+            data = {
+                'birth': f"{year}년 {month}월 {day}일",
+                'zodiac': user_zodiac,
+                'age': age,
+                'today': today_content,
+                'tomorrow': tomorrow_content
+            }
+        except Exception as e:
+            print(f"운세 페이지 로직 에러: {e}")
+
+
+    return render_template('fortune.html', data=data)
+
+
+def crawl_naver_fortune(zodiac_name, is_tomorrow=False):
+    target = "내일" if is_tomorrow else "오늘"
+    # 네이버 운세 검색 URL (더 정확한 경로로 수정)
+    url = f"https://search.naver.com/search.naver?query={zodiac_name}+{target}+운세"
+
+    # 실제 브라우저처럼 보이게 하는 필수 헤더
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.naver.com'
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=5)
+        res.raise_for_status()  # 연결 실패 시 에러 발생
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        # 네이버 운세 텍스트 박스 선택 (여러 경우의 수 대비)
+        fortune_box = soup.select_one(".text._content") or soup.select_one(".infothumb .detail")
+
+        if fortune_box:
+            return fortune_box.get_text().strip()
+        else:
+            return f"현재 {zodiac_name} {target} 운세 정보를 찾을 수 없습니다. (네이버 UI 변경 가능성)"
+
+    except Exception as e:
+        print(f"에러 발생: {e}")
+        return "네이버 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."
+
+
+def get_db_fortune(zodiac_name, target_date):
+    conn = None
+    try:
+        conn = Session.get_connection()
+        with conn.cursor() as cursor:
+            # 1. DB 조회
+            sql = "SELECT content FROM fortunes WHERE zodiac_name = %s AND target_date = %s"
+            cursor.execute(sql, (zodiac_name, target_date))
+            result = cursor.fetchone()
+
+            if result:
+                # 튜플/딕셔너리 모든 환경 대응
+                return result['content'] if isinstance(result, dict) else result[0]
+
+            # 2. DB에 없으면 크롤링
+            is_tomorrow = target_date > datetime.now().date()
+            content = crawl_naver_fortune(zodiac_name, is_tomorrow)
+
+            # 3. 크롤링한 내용이 정상일 때만 DB 저장
+            if "실패" not in content and "없습니다" not in content:
+                insert_sql = "INSERT INTO fortunes (zodiac_name, target_date, content) VALUES (%s, %s, %s)"
+                cursor.execute(insert_sql, (zodiac_name, target_date, content))
+                conn.commit()
+
+            return content
+
+    except Exception:
+        # ❗ 터미널에 아주 상세한 에러 로그를 찍어줍니다. 이걸 확인해야 합니다.
+        print("DB/로직 상세 에러 로그 발생!")
+        traceback.print_exc()
+        return "운세 로직 처리 중 내부 오류가 발생했습니다."
+    finally:
+        if conn:
+            conn.close()
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행

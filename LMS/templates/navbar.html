@@ -66,6 +66,11 @@
 <!--                            {% endif %}-->
 <!--                        </ul>-->
 <!--                    </li>-->
+                {% if session.get('user_id') %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/fortune"> 나의 운세</a>
+                </li>
+                {% endif %}
             </ul>
 
             <ul class="navbar-nav align-items-lg-center">
