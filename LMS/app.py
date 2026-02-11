@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+
 load_dotenv()
 
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
@@ -21,6 +23,11 @@ def close_db(e=None):
     if db is not None:
         db.close()
 
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                 회원 CRUD
+# ----------------------------------------------------------------------------------------------------------------------
+
+# 로그인 후 이용 가능합니다.
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -30,6 +37,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# 로그인
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
@@ -49,13 +57,14 @@ def login():
     else:
         return "<script>alert('로그인 실패');history.back();</script>"
 
-
+# 로그아웃
 @app.route('/logout')
 def logout():
     session.clear()
     flash('로그아웃 되었습니다.')
     return redirect(url_for('login'))
 
+# 회원가입
 @app.route('/join', methods=['GET', 'POST'])
 def join():
     if request.method == 'GET':
@@ -82,6 +91,7 @@ def join():
         print(f"가입 에러: {e}")
         return '가입 중 오류 발생'
 
+# 회원 정보 수정
 @app.route('/member/edit', methods=['GET', 'POST'])
 @login_required
 def member_edit():
@@ -114,6 +124,7 @@ def member_edit():
         print(f"수정 에러: {e}")
         return "수정 중 오류 발생"
 
+# 마이페이지
 @app.route('/mypage')
 @login_required
 def mypage():
@@ -125,6 +136,61 @@ def mypage():
 
     return render_template('mypage.html', user=user, board_count=board_count)
 
+# 마이페이지 - 성적 확인
+@app.route('/score/my')
+def score_my():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT * FROM scores WHERE member_id = %s"
+            cursor.execute(sql, (session['user_id'],))
+            row = cursor.fetchone()
+
+            score = Score.from_db(row) if row else None
+            return render_template('score_my.html', score=score)
+    finally:
+        conn.close()
+
+# 마이페이지 - 작성한 게시물 조회
+@app.route('/board/my')  # http://localhost:5000/board/my
+def my_board_list() :
+    if 'user_id' not in session :
+        return redirect(url_for('login'))
+
+    conn = Session.get_connection()
+
+    try :
+        with conn.cursor() as cursor :
+
+            # 내가 쓴 글만 조회 (작성자 이름 포함)
+            sql = """
+                  SELECT b.*, m.name as writer_name
+                  FROM boards b
+                  JOIN members m ON b.member_id = m.id
+                  WHERE b.member_id = %s
+                  ORDER BY b.id DESC
+                  """
+            cursor.execute(sql, (session['user_id'],))
+            rows = cursor.fetchall()
+
+            # 기존 Board 도메인 객체 활용
+            boards = [Board.from_db(row) for row in rows]
+
+            # 기존 board_list.html을 재사용하거나 전용 페이지를 만듭니다.
+            # 여기서는 '내 글 관리'라는 느낌을 주도록 새로운 제목과 함께 보냅니다.
+            return render_template('board_list.html', boards=boards, list_title="내가 작성한 게시물")
+
+    finally :
+        conn.close()
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                 게시판 CRUD
+# ----------------------------------------------------------------------------------------------------------------------
+
+# 게시물 작성
 @app.route('/board/write', methods=['GET', 'POST']) # http://localhost:5000/board/write
 def board_write():
     # 1. 사용자가 '글쓰기' 버튼을 눌러서 들어왔을 때 (화면 보여주기)
@@ -236,7 +302,7 @@ def board_list():
 
     return render_template('board_list.html', boards=boards, pagination=pagination)
 
-
+# 게시물 자세히 보기
 @app.route('/board/view/<int:board_id>')
 def board_view(board_id):
     # 1. 조회수 증가 (기존 동일)
@@ -294,6 +360,7 @@ def board_view(board_id):
                            user_liked=user_liked,
                            comments=root_comments)
 
+# 게시물 수정
 @app.route('/board/edit/<int:board_id>', methods=['GET', 'POST'])
 def board_edit(board_id):
     if request.method == 'GET':
@@ -318,7 +385,7 @@ def board_edit(board_id):
             print(e)
     return None
 
-
+# 게시물 삭제
 @app.route('/board/delete/<int:board_id>')
 def board_delete(board_id):
     board_sql = 'SELECT * FROM boards WHERE id = %s'
@@ -334,6 +401,7 @@ def board_delete(board_id):
     except Exception as e:
         print(e)
 
+# 좋아요
 @app.route('/board/like/<int:board_id>', methods=['POST'])
 def board_like_toggle(board_id):
     # 1. 로그인 체크
@@ -378,7 +446,7 @@ def board_like_toggle(board_id):
             'message': f"데이터베이스 오류가 발생했습니다: {str(e)}"
         }), 500
 
-
+# 댓글
 @app.route('/board/comment/<int:board_id>', methods=['POST'])
 def add_comment(board_id):
     if 'user_id' not in session:
@@ -393,6 +461,11 @@ def add_comment(board_id):
 
     return jsonify({'success': True})
 
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                 성적 CRUD
+# ----------------------------------------------------------------------------------------------------------------------
+
+# 성적 입력
 @app.route('/score/add') # http://localhost:5000/score/add?uid=test1&name=test1
 def score_add():
     if session.get('user_role') not in ('admin', 'manager'):
@@ -419,6 +492,7 @@ def score_add():
     finally:
         conn.close()
 
+# 성적 저장
 @app.route('/score/save', methods=['POST'])
 def score_save():
     if session.get('user_role') not in ('admin', 'manager'):
@@ -460,6 +534,7 @@ def score_save():
     finally:
         conn.close()
 
+# 성적 목록
 @app.route('/score/list') # http://localhost:5000/score/list -> get
 def score_list():
     if session.get('user_role') not in ('admin', 'manager'):
@@ -489,6 +564,7 @@ def score_list():
     finally:
         conn.close()
 
+# 성적 입력 (member 테이블 기반)
 @app.route('/score/members')
 def score_members():
     if session.get('user_role') not in ('admin', 'manager'):
@@ -510,22 +586,81 @@ def score_members():
     finally:
         conn.close()
 
-@app.route('/score/my')
-def score_my():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+# ----------------------------------------------------------------------------------------------------------------------
+#                                              자료실 (파일 업로드)
+# ----------------------------------------------------------------------------------------------------------------------
 
-    conn = Session.get_connection()
-    try:
-        with conn.cursor() as cursor:
-            sql = "SELECT * FROM scores WHERE member_id = %s"
-            cursor.execute(sql, (session['user_id'],))
-            row = cursor.fetchone()
+# 파일 저장 경로 설정 (static 폴더 안)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 
-            score = Score.from_db(row) if row else None
-            return render_template('score_my.html', score=score)
-    finally:
-        conn.close()
+# 폴더가 없으면 자동 생성 (OS 오류 방지)
+if not os.path.exists(UPLOAD_FOLDER) :
+    os.makedirs(UPLOAD_FOLDER, exist_ok = True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# 자료실 메인 화면 (서브 메뉴 전용 경로)
+@app.route('/library')
+def library_list() :
+    if 'user_id' not in session :
+        return "<script>alert('로그인 후 이용 가능합니다.');location.href='/login';</script>"
+
+    # 폴더 내 파일 목록 읽기
+    try :
+        files = os.listdir(app.config['UPLOAD_FOLDER'])
+
+    except Exception as e :
+        print(f"파일 읽기 오류: {e}")
+
+        files = []
+
+    return render_template('library.html', files=files)
+
+# 파일 업로드
+@app.route('/library/upload', methods=['POST'])
+def library_upload() :
+    if 'file' not in request.files :
+        return "<script>alert('파일이 존재하지 않습니다.');history.back();</script>"
+
+    file = request.files['file']
+    if file.filename == '' :
+        return "<script>alert('선택된 파일이 없습니다.');history.back();</script>"
+
+    if file :
+
+        # 안전한 파일명으로 변경 후 저장
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        return f"<script>alert('{filename} 업로드가 완료되었습니다.');location.href='/library';</script>"
+
+# 파일 삭제
+@app.route('/library/delete/<filename>', methods=['POST'])
+def library_delete(filename) :
+    if 'user_id' not in session :
+        return "<script>alert('권한이 없습니다.');history.back();</script>"
+
+    # 보안을 위해 파일명 정제 (중요!)
+    filename = secure_filename(filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    try :
+
+        if os.path.exists(file_path) :
+            os.remove(file_path)  # 실제 파일 삭제
+            return f"<script>alert('{filename} 삭제가 완료되었습니다.');location.href='/library';</script>"
+
+        else :
+            return "<script>alert('파일을 찾을 수 없습니다.');history.back();</script>"
+
+    except Exception as e :
+        print(f"파일 삭제 에러: {e}")
+        return "<script>alert('파일 삭제 도중 오류가 발생했습니다.');history.back();</script>"
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                플라스크 실행
+# ----------------------------------------------------------------------------------------------------------------------
 
 @app.route('/')
 def index():

@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📂 자료실</h2>
+        <a href="/" class="btn btn-secondary btn-sm">메인으로</a>
+    </div>
+
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-3">파일 업로드</h5>
+            <form action="/library/upload" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control" id="fileInput" onchange="previewFile()" required>
+                </div>
+                <div id="previewContainer" class="mb-3 d-none">
+                    <p class="text-muted small mb-1">업로드 예정 파일 미리보기:</p>
+                    <div id="filePreview" class="border rounded p-2 bg-light text-center" style="max-height: 200px; overflow: hidden;">
+                        </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">서버에 저장하기</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%">번호</th>
+                        <th>파일명</th>
+                        <th style="width: 30%" class="text-center">관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="text-truncate" style="max-width: 300px;">{{ file }}</td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <a href="{{ url_for('static', filename='uploads/' + file) }}" class="btn btn-sm btn-outline-success" download>다운로드</a>
+                                <form action="{{ url_for('library_delete', filename=file) }}" method="post" onsubmit="return confirm('정말 삭제할까요?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5 text-muted">등록된 자료가 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewFile() {
+    const preview = document.getElementById('filePreview');
+    const container = document.getElementById('previewContainer');
+    const file = document.getElementById('fileInput').files[0];
+    const reader = new FileReader();
+
+    container.classList.remove('d-none');
+    preview.innerHTML = ""; // 이전 미리보기 초기화
+
+    reader.onloadend = function () {
+        if (file.type.startsWith('image/')) {
+            // 이미지인 경우 이미지를 보여줌
+            const img = document.createElement('img');
+            img.src = reader.result;
+            img.style.maxWidth = "100%";
+            img.style.maxHeight = "180px";
+            preview.appendChild(img);
+        } else {
+            // 이미지가 아닌 경우 파일 정보만 표시
+            preview.innerHTML = `<div class="py-3">📄 <strong>${file.name}</strong><br><span class="text-muted">${(file.size / 1024).toFixed(1)} KB</span></div>`;
+        }
+    }
+
+    if (file) {
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+{% endblock %}
