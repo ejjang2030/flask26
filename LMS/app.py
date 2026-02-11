@@ -132,7 +132,10 @@ def board_write():
         # 로그인 체크 (로그인 안 했으면 글 못 쓰게)
         if 'user_id' not in session:
             return '<script>alert("로그인 후 이용 가능합니다."); location.href="/login";</script>'
-        return render_template('board_write.html')
+
+        # 관리자 여부를 템플릿에 전달
+        is_admin = (session.get('user_role') == "admin")
+        return render_template('board_write.html', is_admin=is_admin)
 
     # 2. 사용자가 '등록하기' 버튼을 눌러서 데이터를 보냈을 때(DB 저장)
     elif request.method == 'POST':
@@ -140,13 +143,48 @@ def board_write():
         content = request.form.get('content')
         # 세션에 저장된 로그인 유지의 id (member_id)
         member_id = session.get('user_id')
-        try:
-            execute_query(
-                "INSERT INTO boards (member_id, title, content) VALUES (%s, %s, %s)", (member_id, title, content))
-            return redirect(url_for('board_list'))
-        except Exception as e:
-            print(e)
 
+        #소현
+        # 1. 공지사항 고정 여부 확인 (관리자만 가능)
+        is_pinned = 0
+        if session.get('user_role') == "admin":
+            if request.form.get('is_pinned') == 'on':
+                is_pinned = 1
+
+        conn = Session.get_connection()
+        print("2",is_pinned)
+        try:
+            with conn.cursor() as cursor:
+                # 2. 공지사항(is_pinned=1)인 경우에만 개수 체크
+                if is_pinned == 1:
+                    count_sql = "SELECT COUNT(*) AS c FROM boards WHERE is_pinned = 1"
+                    cursor.execute(count_sql)
+                    pinned_count = cursor.fetchone()['c'] # 튜플이나 딕셔너리 형태에 따라 적절히 추출
+                    print(pinned_count)
+
+                    if pinned_count >= 10:
+                        return "<script>alert('공지사항은 최대 10개까지만 등록 가능합니다.');history.back();</script>"
+
+                # 3. DB 저장 (is_pinned 컬럼 포함)
+                sql = "INSERT INTO boards (member_id, title, content, is_pinned) VALUES (%s, %s, %s, %s)"
+                cursor.execute(sql, (member_id, title, content, is_pinned))
+                conn.commit()
+
+            return redirect(url_for('board_list'))  # 저장 후 목록으로 이동
+
+        except Exception as e:
+            print(f"글쓰기 에러: {e}")
+            return "저장 중 에러가 발생했습니다."
+
+        finally:
+            conn.close()
+
+        # try:
+        #     execute_query(
+        #         "INSERT INTO boards (member_id, title, content) VALUES (%s, %s, %s)", (member_id, title, content))
+        #     return redirect(url_for('board_list'))
+        # except Exception as e:
+        #     print(e)
 
 @app.route('/board')
 def board_list():
@@ -159,6 +197,11 @@ def board_list():
     total_count = fetch_query(count_sql)[0]['cnt']
     total_pages = ceil(total_count / per_page)
 
+    # 소현
+    # 2. SQL 수정: ORDER BY 절에 b.is_pinned DESC 추가
+    # is_pinned가 1(고정)인 데이터가 0(일반)보다 먼저 정렬됩니다.
+    #
+
     # [개선] 좋아요 수와 댓글 수를 각각 집계하기 위해 DISTINCT 또는 서브쿼리 사용
     sql = f"""
         SELECT 
@@ -168,7 +211,7 @@ def board_list():
             (SELECT COUNT(*) FROM board_comments WHERE board_id = b.id) as comment_count
         FROM boards b
         JOIN members m ON b.member_id = m.id
-        ORDER BY b.id DESC
+        ORDER BY b.is_pinned DESC, b.id DESC
         LIMIT {per_page} OFFSET {offset}
     """
     rows = fetch_query(sql)
@@ -178,6 +221,8 @@ def board_list():
         board = Board.from_db(row)
         board.like_count = row['like_count']
         board.comment_count = row['comment_count'] # 댓글 수 할당
+        #Board 객체에 is_pinned 속성이 없어서 추가
+        board.is_pinned = row.get('is_pinned', 0)
         boards.append(board)
 
     pagination = {

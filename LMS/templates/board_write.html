@@ -13,6 +13,16 @@
                     <label class="form-label">내용</label>
                     <textarea name="content" class="form-control" rows="10" placeholder="내용을 입력하세요" required></textarea>
                 </div>
+                <!--소현-->
+                {% if is_admin %}
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_pinned" id="isPinned">
+                    <label class="form-check-label text-danger fw-bold" for="isPinned">
+                        📌 고정 게시글로 등록 (최대 10개)
+                    </label>
+                </div>
+                {% endif %}
+                <!---->
                 <div class="text-end">
                     <button type="submit" class="btn btn-primary">등록하기</button>
                     <a href="/board" class="btn btn-secondary">취소</a>

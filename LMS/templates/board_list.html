@@ -121,6 +121,31 @@
                     </thead>
                     <tbody>
                         {% for board in boards %}
+                        <tr class="{{ 'table-primary' if board.is_pinned == 1 else '' }}">
+                            <td>
+                                {% if board.is_pinned == 1 %}
+                                    <span class="badge bg-danger">공지</span>
+                                {% else %}
+                                    {{ board.id }}
+                                {% endif %}
+                            </td>
+                            <td>{{ board.title }} [{{ board.comment_count }}]</td>
+                            <td>{{ board.writer_name }}</td>
+                            <td class="text-center text-muted small">
+                                {{ board.created_at.strftime('%Y-%m-%d') if board.created_at }}
+                            </td>
+                            <td class="text-center small">
+                                <span class="text-secondary">{{ board.visits }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-white text-danger border border-danger-subtle rounded-pill fw-normal px-3 py-2">
+                                    ❤️ {{ board.like_count }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% for board in boards %}
                         <tr onclick="location.href='/board/view/{{ board.id }}'">
                             <td class="text-center text-muted small">{{ board.id }}</td>
                             <td>
@@ -152,7 +177,6 @@
                     </tbody>
                 </table>
             </div>
-
             <nav aria-label="Page navigation" class="mt-4">
               <ul class="pagination justify-content-center">
 
