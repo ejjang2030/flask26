@@ -207,3 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 .idea/
+.idea
+**/ .idea
+.idea/flask.iml
+.idea/misc.xml
