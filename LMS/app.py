@@ -15,7 +15,6 @@ from math import ceil
 from functools import wraps
 from bs4 import BeautifulSoup
 from flask_caching import Cache
-<<<<<<< Updated upstream
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,8 +22,6 @@ from functools import wraps
 import os
 from LMS.common.db import fetch_query, execute_query
 from LMS.common.session import Session
-=======
->>>>>>> Stashed changes
 from LMS.domain import Board, Score
 from LMS.service import PostService
 from LMS.common.session import Session
@@ -408,10 +405,6 @@ def board_list():
 
     return render_template('board_list.html', boards=boards, pagination=pagination)
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 # 게시물 자세히 보기
 @app.route('/board/view/<int:board_id>')
 def board_view(board_id):
