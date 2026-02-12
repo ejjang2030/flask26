@@ -1,5 +1,4 @@
 
-from datetime import datetime
 
 from ssl import socket_error
 
@@ -24,13 +23,6 @@ from LMS.domain import Board, Score
 from math import ceil
 import uuid
 from flask_socketio import SocketIO, join_room, leave_room, emit
-
-
-import uuid
-from flask_socketio import SocketIO, join_room, leave_room, emit
-
-
-
 app = Flask(__name__)
 
 # 띠별 운세 확인 시 필요
@@ -943,7 +935,7 @@ def get_db_fortune(zodiac_name, target_date):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-#                                         랜덤 채팅
+#                                                  랜덤 채팅
 # ----------------------------------------------------------------------------------------------------------------------
 
 # 대기열: 접속해서 매칭을 기다리는 유저들의 request.sid(고유ID) 저장
@@ -955,41 +947,44 @@ waiting_users = []
 def chat():
     return render_template("chat.html")
 
-
 # 채팅 매칭(대기열 중복입장 블록, 매칭)
 @socketio.on("random_match")
 def handle_random_match():
     global waiting_users
     sid = request.sid
 
-    if sid in waiting_users:
-        print("이미 대기 중:", sid)
-        return
-
-    if waiting_users:
-        partner_sid = waiting_users.pop(0)
-
-        if partner_sid == sid:
-            waiting_users.append(sid)
-            return
-
-        room_id = str(uuid.uuid4())
-
-        join_room(room_id)
-        socketio.server.enter_room(partner_sid, room_id)
-
-        # 두 명 모두에게 매칭 알림
-        socketio.emit("matched", {"room": room_id}, room=room_id)
-
-        print("매칭 완료:", room_id)
-
-    else:
-        waiting_users.append(request.sid)
-        print("대기열 추가:", request.sid)
+# @socketio.on('join')
+# def on_join():
+#     user_id = request.sid
+#
+#     if sid in waiting_users:
+#         print("이미 대기 중:", sid)
+#         return
+#
+#     if waiting_users:
+#         partner_sid = waiting_users.pop(0)
+#
+#         if partner_sid == sid:
+#             waiting_users.append(sid)
+#             return
+#
+#         room_id = str(uuid.uuid4())
+#
+#         join_room(room_id)
+#         socketio.server.enter_room(partner_sid, room_id)
+#
+#         # 두 명 모두에게 매칭 알림
+#         socketio.emit("matched", {"room": room_id}, room=room_id)
+#
+#         print("매칭 완료:", room_id)
+#
+#     else:
+#         waiting_users.append(request.sid)
+#         print("대기열 추가:", request.sid)
 
 
 #  메시지 전송
-@socketio.on("send_message")
+@socketio.on('send_message')
 def handle_send_message(data):
     room = data.get("room")
     message = data.get("message")
@@ -1001,7 +996,6 @@ def handle_send_message(data):
         "user": "상대방",
         "message": message
     }, room=room, include_self=False)
-
 
 #  방 나가기
 @socketio.on("leave_room")
@@ -1022,14 +1016,21 @@ def handle_disconnect():
         waiting_users.remove(sid)
         print("대기열에서 제거:", sid)
 
-# -----------------------------------------------------------------------
-#                               플라스크 실행
-# -----------------------------------------------------------------------
+@socketio.on('disconnect')
+def on_disconnect():
+    user_id = request.sid
+    # 대기 중에 나갔다면 대기열에서 제거
+    if user_id in waiting_users:
+        waiting_users.remove(user_id)
+    print(f"접속 종료: {user_id}")
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                플라스크 실행
+# ----------------------------------------------------------------------------------------------------------------------
 
 @app.route('/')
 def index():
     return render_template('main.html')
-
 
 if __name__ == '__main__':
     socketio.run(
