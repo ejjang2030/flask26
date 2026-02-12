@@ -175,6 +175,40 @@ def score_my():
     finally:
         conn.close()
 
+# 마이페이지 - 프로필 사진
+@app.route('/profile/upload', methods=['POST'])
+def profile_upload():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if 'profile_img' not in request.files:
+        return "<script>alert('파일이 없습니다.');history.back();</script>"
+
+    file = request.files['profile_img']
+    if file.filename == '':
+        return "<script>alert('선택된 파일이 없습니다.');history.back();</script>"
+
+    if file:
+        # 확장자 체크 및 파일명 생성 (유저 고유 ID 사용)
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in ['.jpg', '.jpeg', '.png', '.gif']:
+            return "<script>alert('이미지 파일만 업로드 가능합니다.');history.back();</script>"
+
+        # 파일명: profile_유저ID.png (기존 사진 덮어쓰기 위해 고정)
+        filename = f"profile_{session['user_id']}{ext}"
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        file.save(save_path)
+
+        # DB의 members 테이블에 프로필 이미지 파일명 저장 (이미 컬럼이 있다면)
+        try:
+            sql = "UPDATE members SET profile_img = %s WHERE id = %s"
+            execute_query(sql, (filename, session['user_id']))
+            return "<script>alert('프로필 사진이 변경되었습니다.');location.href='/mypage';</script>"
+        except Exception as e:
+            print(f"프로필 DB 업데이트 에러: {e}")
+            return "<script>alert('DB 업데이트 중 오류 발생');history.back();</script>"
+
 # 마이페이지 - 작성한 게시물 조회
 @app.route('/board/my')  # http://localhost:5000/board/my
 def my_board_list() :
