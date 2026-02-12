@@ -1099,6 +1099,74 @@ def on_disconnect():
     print(f"접속 종료: {user_id}")
 
 # ----------------------------------------------------------------------------------------------------------------------
+#                                                 메모장
+# ----------------------------------------------------------------------------------------------------------------------
+# 메모장 메인 (목록 조회)
+@app.route('/memo')
+def memo_list():
+    if 'user_id' not in session:
+        flash('로그인이 필요한 서비스입니다.')
+        return redirect(url_for('login'))
+
+    # 팀 프로젝트 규칙: session['user_id']에 PK가 들어있음
+    current_user_pk = session.get('user_id')
+
+    memos = fetch_query(
+        "SELECT * FROM memos WHERE member_id = %s ORDER BY updated_at DESC",
+        (current_user_pk,)
+    )
+    return render_template('memo_list.html', memos=memos)
+
+# 메모 저장 (신규 / 수정)
+@app.route('/memo/save', methods=['POST'])
+def memo_save():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': '로그인이 필요합니다.'})
+
+        data = request.get_json()
+        # [수정] user_pk 대신 세션에 저장된 user_id를 가져옴
+        current_user_pk = session.get('user_id')
+
+        # 디버깅용 출력 (변수명 일치시킴)
+        print(f"--- 저장 시도 중: user_pk={current_user_pk}, data={data} ---")
+
+        if current_user_pk is None:
+            return jsonify({'success': False, 'message': '유저 정보가 없습니다. 다시 로그인하세요.'})
+
+        title = data.get('title') or '제목 없는 메모'
+        content = data.get('content', '')
+        memo_id = data.get('id')
+
+        if memo_id:
+            execute_query("UPDATE memos SET title=%s, content=%s WHERE id=%s AND member_id=%s",
+                          (title, content, memo_id, current_user_pk))
+        else:
+            execute_query("INSERT INTO memos (member_id, title, content) VALUES (%s, %s, %s)",
+                          (current_user_pk, title, content))
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        print(f"서버 에러 발생: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 메모 삭제
+@app.route('/memo/delete/<int:memo_id>', methods=['POST'])
+def memo_delete(memo_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'})
+
+    # [수정] 여기도 통일
+    current_user_pk = session.get('user_id')
+
+    execute_query(
+        "DELETE FROM memos WHERE id=%s AND member_id=%s",
+        (memo_id, current_user_pk)
+    )
+    return jsonify({'success': True})
+
+# ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------
 

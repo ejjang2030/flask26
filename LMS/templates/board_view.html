@@ -176,18 +176,26 @@
             <div class="d-flex justify-content-center gap-2 mb-5">
                 <a href="/board" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-white"
                    style="background-color: var(--communa-teal);">목록으로 돌아가기</a>
+
                 {% if session.get('user_id') == board.member_id %}
                 <a href="/board/edit/{{ board.id }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">수정</a>
                 <a href="/board/delete/{{ board.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-3 ms-1"
                    onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
                 {% endif %}
 
-
                 {% if session.get('user_id') and session.get('user_id') != board.member_id %}
                 <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 ms-1"
                         data-bs-toggle="modal" data-bs-target="#reportModal">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>신고
                 </button>
+                {% endif %}
+
+                {% if session.get('user_role') == 'admin' %}
+                <a href="/admin/clear_reports/{{ board.id }}"
+                   class="btn btn-sm btn-info text-white rounded-pill px-3 ms-1 fw-bold"
+                   onclick="return confirm('이 게시글의 모든 신고 내역을 초기화하시겠습니까?')">
+                    <i class="bi bi-shield-check me-1"></i>신고 초기화(복구)
+                </a>
                 {% endif %}
             </div>
 

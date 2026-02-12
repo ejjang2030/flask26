@@ -176,6 +176,11 @@
     font-weight: 600;
     margin-right: 5px;
 }
+
+    /* 자유게시판 번호, 제목, 작성자 등 글씨 색상 변경 */
+    .custom-text-dark {
+      color: #343A40 !important;
+    }
 </style>
 
 <div class="row justify-content-center py-5">
@@ -187,7 +192,7 @@
                 <p class="text-muted mb-0">Communa 식구들의 다양한 이야기를 나누는 공간입니다.</p>
             </div>
             <a href="/board/write" class="btn text-white px-4 py-2 rounded-pill shadow-sm hover-effect"
-               style="background-color: var(--communa-teal); transition: 0.3s;">
+               style="background-color: #269CA6; transition: 0.3s;">
                 <i class="bi bi-pencil-square me-1"></i> 새 글 쓰기
             </a>
         </div>
@@ -207,13 +212,13 @@
                 <table class="table align-middle mb-0">
                     <thead>
                     <tr>
-                        <th class="text-center" style="width: 8%;">번호</th>
-                        <th style="width: 42%;">제목</th>
-                        <th class="text-center" style="width: 12%;">작성자</th>
-                        <th class="text-center" style="width: 12%;">날짜</th>
-                        <th class="text-center" style="width: 8%;">조회</th>
-                        <th class="text-center" style="width: 9%;">좋아요</th>
-                        <th class="text-center" style="width: 9%;">싫어요</th>
+                        <th class="text-center custom-text-dark" style="width: 8%;">번호</th>
+                        <th class="text-center custom-text-dark" style="width: 42%;">제목</th>
+                        <th class="text-center custom-text-dark" style="width: 12%;">작성자</th>
+                        <th class="text-center custom-text-dark" style="width: 12%;">날짜</th>
+                        <th class="text-center custom-text-dark" style="width: 8%;">조회</th>
+                        <th class="text-center custom-text-dark" style="width: 9%;">좋아요</th>
+                        <th class="text-center custom-text-dark" style="width: 9%;">싫어요</th>
                     </tr>
                     </thead>
                 <tbody>

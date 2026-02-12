@@ -75,23 +75,38 @@
 
             <ul class="navbar-nav align-items-lg-center">
                 {% if session.get('user_id') %}
-
                     <li class="nav-item me-2">
                         <span class="nav-link badge bg-secondary text-white px-3 py-2 rounded-pill fw-normal">
                             <span class="text-info">{{ session['user_role'] }}</span> | {{ session['user_name'] }}님
                         </span>
                     </li>
+
                     {% if session.get('user_role') == 'admin' %}
                         <li class="nav-item">
                             <a href="/admin" class="nav-link">⚙️ 관리자</a>
                         </li>
                     {% endif %}
+
+                    <li class="nav-item">
+                        <a href="/memo" class="nav-link px-2">
+                            <i class="bi bi-sticky-fill text-info"></i> 메모
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="/calendar" class="nav-link px-2">
+                            <i class="bi bi-calendar-check text-info"></i> 캘린더
+                        </a>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link" href="/mypage">마이페이지</a>
                     </li>
+
                     <li class="nav-item">
                         <a class="btn btn-outline-light btn-sm ms-lg-3 px-3 rounded-pill" href="/logout">로그아웃</a>
                     </li>
+
                 {% else %}
                     <li class="nav-item">
                         <a class="nav-link px-3" href="/login">로그인</a>
