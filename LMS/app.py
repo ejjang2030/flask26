@@ -142,8 +142,6 @@ def member_edit():
 
 # 마이페이지
 @app.route('/mypage')
-@login_required
-@app.route('/mypage')
 def mypage():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -632,35 +630,30 @@ def add_comment(board_id):
 # 게시물 신고 기능
 @app.route('/board/report/<int:board_id>', methods=['POST'])
 def board_report(board_id):
-    # 1. 로그인 체크
     if 'user_id' not in session:
-        return "<script>alert('로그인 후 신고가 가능합니다.'); history.back();</script>"
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
 
-    reason = request.form.get('reason')  # 사용자가 선택한 신고 사유 (HTML에서 받아옴)
+    # 프론트에서 JSON으로 보냈다면 request.get_json()을 써야 할 수도 있습니다.
+    # 만약 기존처럼 Form으로 보냈다면 그대로 유지하세요.
+    data = request.get_json()
+    reason = data.get('reason')
     reporter_id = session['user_id']
 
     try:
-        # 2. 본인 게시글 신고 방지 (팀 프로젝트의 핵심 디테일!)
         board = fetch_query("SELECT member_id FROM boards WHERE id = %s", (board_id,), one=True)
         if board and board['member_id'] == reporter_id:
-            return "<script>alert('본인 게시글은 신고할 수 없습니다.'); history.back();</script>"
-
-        # 3. 중복 신고 체크 (fetch_query 활용)
+            return jsonify({'success': False, 'message': '본인 글은 신고할 수 없습니다.'})
         check_sql = "SELECT id FROM reports WHERE board_id = %s AND reporter_id = %s"
-        already_reported = fetch_query(check_sql, (board_id, reporter_id), one=True)
+        if fetch_query(check_sql, (board_id, reporter_id), one=True):
+            return jsonify({'success': False, 'message': '이미 신고한 글입니다.'})
 
-        if already_reported:
-            return "<script>alert('이미 신고한 게시글입니다.'); history.back();</script>"
-
-        # 4. 신고 데이터 삽입 (execute_query 활용)
         insert_sql = "INSERT INTO reports (board_id, reporter_id, reason) VALUES (%s, %s, %s)"
         execute_query(insert_sql, (board_id, reporter_id, reason))
-
-        return "<script>alert('신고가 접수되었습니다. 감사합니다.'); location.href='/board';</script>"
+        return jsonify({'success': True, 'message': '신고가 접수되었습니다.'})
 
     except Exception as e:
-        print(f"신고 처리 에러: {e}")
-        return "<script>alert('신고 처리 중 오류가 발생했습니다.'); history.back();</script>"
+        print(f"Database Error: {e}")
+        return jsonify({'success': False, 'message': '서버 오류 발생'}), 500
 
 
 # 관리자 전용: 신고 내역 초기화 (게시글 복구)

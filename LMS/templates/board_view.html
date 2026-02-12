@@ -182,7 +182,7 @@
                    onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
                 {% endif %}
 
-                //신고 버튼
+
                 {% if session.get('user_id') and session.get('user_id') != board.member_id %}
                 <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 ms-1"
                         data-bs-toggle="modal" data-bs-target="#reportModal">
@@ -333,7 +333,6 @@
         });
     }
 
-    // 신고 기능
     function submitReport(boardId) {
     const reason = document.getElementById('report-reason').value;
     const detail = document.getElementById('report-detail').value;
@@ -346,17 +345,12 @@
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            alert("신고가 정상적으로 접수되었습니다.");
-            location.reload();
-        } else {
-            alert(data.message);
-        }
+        alert(data.message); // 서버에서 보낸 "이미 신고한 글입니다" 등을 띄움
+        if(data.success) location.reload();
     });
 }
 </script>
 
-// 신고 모달
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
