@@ -9,7 +9,6 @@ from flask import send_from_directory
 from werkzeug.utils import secure_filename
 
 load_dotenv()
-
 import traceback
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +22,9 @@ from LMS.common.db import fetch_query, execute_query
 from LMS.common.session import Session
 from LMS.domain import Board, Score
 from math import ceil
+import uuid
+from flask_socketio import SocketIO, join_room, leave_room, emit
+
 
 
 
@@ -790,7 +792,7 @@ def library_delete(file_id):
         print(f"삭제 에러: {e}")
         return "<script>alert('삭제 처리 중 오류 발생');history.back();</script>"
 
-<<<<<<< Updated upstream
+
 # ----------------------------------------------------------------------------------------------------------------------
 #                                         오늘의 운세 / 내일의 운세 (띠별)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -905,25 +907,17 @@ def get_db_fortune(zodiac_name, target_date):
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------
-=======
 
-#--------------------------------------------------
-#               랜덤챗
-#--------------------------------------------------
-import uuid
-from flask_socketio import SocketIO, join_room, leave_room, emit
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'  # 세션/보안용 키 (필수)
-socketio = SocketIO(app)
 
 # -----------------------------------------------------------------------
 #                               랜덤 채팅 로직
 # -----------------------------------------------------------------------
 
 # 대기열: 접속해서 매칭을 기다리는 유저들의 request.sid(고유ID) 저장
+socketio = SocketIO(app)
 waiting_users = []
->>>>>>> Stashed changes
+
 
 
 @app.route('/chat')
