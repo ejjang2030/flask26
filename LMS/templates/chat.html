@@ -3,6 +3,39 @@
 {% block title %}랜덤 채팅{% endblock %}
 
 {% block content %}
+<style>
+    /* 메인 포인트 컬러 설정: #269CA6 */
+    :root {
+        --main-color: #269CA6;
+        --main-hover: #1f7d85;
+    }
+
+    /* 버튼 스타일 (매칭 시작, 전송) */
+    .btn-main {
+        background-color: var(--main-color) !important;
+        border: none !important;
+        color: white !important;
+        transition: background-color 0.2s;
+    }
+    .btn-main:hover {
+        background-color: var(--main-hover) !important;
+    }
+
+    /* 입력창 포커스 시 테두리 및 글로우 효과 강제 변경 */
+    .form-control:focus {
+        border-color: var(--main-color) !important;
+        outline: 0 !important;
+        /* 파란색 대신 #269CA6의 반투명(0.25) 버전 적용 */
+        box-shadow: 0 0 0 0.25rem rgba(38, 156, 166, 0.25) !important;
+    }
+
+    /* 내 말풍선 포인트 컬러 적용 */
+    .my-bubble {
+        background-color: var(--main-color) !important;
+        color: white !important;
+    }
+</style>
+
 <div class="container py-5">
     <div class="mb-4">
         <h2 class="fw-bold">💬 랜덤 채팅</h2>
@@ -14,11 +47,11 @@
             <div class="card shadow-sm rounded-4 border-0">
                 <div class="card-header bg-white fw-bold border-bottom-0 pt-3">채팅창</div>
                 <div class="card-body" id="chat-box" style="height:450px; overflow-y:auto; background:#f8f9fa;">
-                    </div>
+                </div>
                 <div class="card-footer bg-white border-top-0 pb-3">
                     <div class="input-group">
                         <input type="text" id="message-input" class="form-control rounded-start-pill ps-3" placeholder="메시지를 입력하세요..." autocomplete="off">
-                        <button class="btn btn-primary rounded-end-pill px-4" id="send-btn">전송</button>
+                        <button class="btn btn-main rounded-end-pill px-4" id="send-btn">전송</button>
                     </div>
                 </div>
             </div>
@@ -28,7 +61,7 @@
             <div class="card shadow-sm rounded-4 border-0">
                 <div class="card-body text-center py-4">
                     <h6 class="fw-bold mb-3">랜덤 매칭</h6>
-                    <button class="btn btn-primary w-100 mb-2 py-2 fw-bold" id="match-btn">매칭 시작</button>
+                    <button class="btn btn-main w-100 mb-2 py-2 fw-bold" id="match-btn">매칭 시작</button>
                     <button class="btn btn-outline-danger w-100 py-2 fw-bold" id="leave-btn">채팅 종료</button>
                     <hr class="my-4">
                     <p class="small text-muted mb-0">상태: <span id="status-text" class="fw-bold text-secondary">대기중</span></p>
@@ -50,7 +83,6 @@
 
     let currentRoom = null;
 
-    // 매칭 시작 버튼
     matchBtn.addEventListener("click", function () {
         if (currentRoom) return;
         matchBtn.disabled = true;
@@ -59,7 +91,6 @@
         statusText.className = "fw-bold text-warning";
     });
 
-    // 매칭 성공 시
     socket.on("matched", function (data) {
         currentRoom = data.room;
         statusText.innerText = "채팅 중";
@@ -67,21 +98,16 @@
         addMessage("📢 시스템", `${data.partner_name}님과 연결되었습니다.`);
     });
 
-    // 메시지 수신
     socket.on("receive_message", function (data) {
         addMessage(data.user, data.message);
-
-        // 상대방이 퇴장했을 때 처리
         if (data.user === "📢 시스템" && data.message.includes("나갔습니다")) {
             resetChatState();
         }
     });
 
-    // 메시지 전송 로직
     function sendMessage() {
         const message = messageInput.value.trim();
         if (!message || !currentRoom) return;
-
         socket.emit("send_message", { room: currentRoom, message: message });
         addMessage("나", message);
         messageInput.value = "";
@@ -90,7 +116,6 @@
     sendBtn.addEventListener("click", sendMessage);
     messageInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
 
-    // 퇴장 버튼
     leaveBtn.addEventListener("click", function () {
         if (currentRoom) {
             socket.emit("leave_room", { room: currentRoom });
@@ -106,28 +131,25 @@
         matchBtn.disabled = false;
     }
 
-    // 말풍선 디자인 적용된 메시지 추가 함수
     function addMessage(user, message) {
         const div = document.createElement("div");
         div.className = "d-flex flex-column mb-3";
 
         let alignClass = "align-items-start";
-        let bgColor = "bg-white text-dark border";
-        let textAlign = "";
+        let extraClass = "bg-white text-dark border";
 
         if (user === "나") {
             alignClass = "align-items-end";
-            bgColor = "bg-primary text-white border-0";
+            extraClass = "my-bubble border-0 shadow-sm";
         } else if (user === "📢 시스템") {
             alignClass = "align-items-center w-100";
-            bgColor = "bg-light text-muted small border-0";
-            textAlign = "text-center";
+            extraClass = "bg-transparent text-muted small border-0 text-center";
         }
 
         div.innerHTML = `
             <div class="${alignClass} w-100 d-flex flex-column ${user === '나' ? 'align-items-end' : (user === '📢 시스템' ? 'align-items-center' : 'align-items-start')}">
                 ${user !== "나" && user !== "📢 시스템" ? `<small class="fw-bold mb-1 ms-2">${user}</small>` : ''}
-                <div class="p-2 px-3 rounded-4 shadow-sm ${bgColor} ${textAlign}" style="max-width: 75%; word-break: break-all;">
+                <div class="p-2 px-3 rounded-4 ${extraClass}" style="max-width: 75%; word-break: break-all;">
                     ${message}
                 </div>
             </div>
