@@ -1233,7 +1233,7 @@ def memo_list():
     current_user_pk = session.get('user_id')
 
     memos = fetch_query(
-        "SELECT * FROM memos WHERE member_id = %s ORDER BY updated_at DESC",
+        "SELECT * FROM memos WHERE member_id = %s ORDER BY is_pinned DESC, updated_at ASC",
         (current_user_pk,)
     )
     return render_template('memo_list.html', memos=memos)
@@ -1286,6 +1286,39 @@ def memo_delete(memo_id):
         (memo_id, current_user_pk)
     )
     return jsonify({'success': True})
+
+
+# 메모 고정/해제
+@app.route('/memo/pin/<int:memo_id>', methods=['POST'])
+def memo_pin(memo_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'})
+
+    current_user_pk = session.get('user_id')
+
+    try:
+        # 현재 핀 상태 확인 (0 또는 1)
+        row = fetch_query(
+            "SELECT is_pinned FROM memos WHERE id=%s AND member_id=%s",
+            (memo_id, current_user_pk)
+        )
+
+        if not row:
+            return jsonify({'success': False, 'message': '메모를 찾을 수 없습니다.'})
+
+        # 상태 반전 (0 -> 1, 1 -> 0)
+        new_status = 1 if row[0]['is_pinned'] == 0 else 0
+
+        # DB 업데이트
+        execute_query(
+            "UPDATE memos SET is_pinned=%s WHERE id=%s AND member_id=%s",
+            (new_status, memo_id, current_user_pk)
+        )
+        return jsonify({'success': True})
+
+    except Exception as e:
+        print(f"핀 처리 에러: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행

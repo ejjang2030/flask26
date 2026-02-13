@@ -17,7 +17,22 @@
                         {% for m in memos %}
                         <button class="list-group-item list-group-item-action py-3 border-bottom"
                                 onclick="loadMemo({{ m.id }}, `{{ m.title }}`, `{{ m.content }}`)">
-                            <div class="fw-bold text-truncate mb-1">{{ m.title }}</div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="fw-bold text-truncate" style="max-width: 80%;">
+                                    {% if m.is_pinned %}<span class="text-danger">📌</span>{% endif %}
+                                    {{ m.title }}
+                                </div>
+
+                                <span class="pin-btn" onclick="togglePin(event, {{ m.id }})" style="cursor: pointer; padding: 0 5px;">
+                                    {% if m.is_pinned %}
+                                        <i class="bi bi-pin-angle-fill text-danger" title="고정 해제"></i>
+                                    {% else %}
+                                        <i class="bi bi-pin-angle text-muted" title="상단 고정"></i>
+                                    {% endif %}
+                                </span>
+                            </div>
+
                             <div class="small text-muted d-flex justify-content-between">
                                 <span>#{{ loop.index }}</span>
                                 <span>{{ m.updated_at.strftime('%Y-%m-%d') }}</span>
@@ -121,6 +136,19 @@
             }
         });
     }
+
+    // 5. 메모 고정
+    function togglePin(event, id) {
+    event.stopPropagation(); // 메모 불러오기 이벤트 방지
+
+    fetch(`/memo/pin/${id}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            location.reload(); // 고정되면 순서가 바뀌어야 하니 새로고침!
+        }
+    });
+}
 </script>
 
 <style>
