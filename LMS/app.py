@@ -1323,6 +1323,105 @@ def memo_pin(memo_id):
         print(f"핀 처리 에러: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                 캘린더
+# ----------------------------------------------------------------------------------------------------------------------
+# 캘린더 클릭
+@app.route('/calendar')
+def calendar_main():
+    if 'user_id' not in session:
+        flash('로그인이 필요한 서비스입니다.')
+        return redirect(url_for('login'))
+
+    return render_template('calendar.html')
+
+
+# 신규 일정 저장하기 (중복 제거 및 내용 저장 기능 통합본)
+@app.route('/calendar/add', methods=['POST'])
+def add_event():
+    if 'user_id' not in session:
+        return jsonify({'success': False})
+
+    data = request.get_json()
+    current_user_pk = session.get('user_id')
+
+    # INSERT 문에 description 컬럼을 반드시 포함해야 합니다.
+    sql = """
+        INSERT INTO schedules (member_id, title, start_date, end_date, color, description) 
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+
+    # DB에 보낼 데이터 순서를 SQL문의 %s 순서와 맞춥니다.
+    execute_query(sql, (
+        current_user_pk,
+        data['title'],
+        data['start'],
+        data['end'],
+        data.get('color', '#3788d8'),
+        data.get('description')  # <-- 이제 '내용'도 DB로 들어갑니다!
+    ))
+
+    return jsonify({'success': True})
+
+# 일정 보기
+@app.route('/calendar/events')
+def get_events():
+    if 'user_id' not in session:
+        return jsonify([])
+
+    current_user_pk = session.get('user_id')
+
+    # 1. SQL 문에 'id' 컬럼을 추가합니다.
+    sql = "SELECT id, title, start_date, end_date, color, description FROM schedules WHERE member_id = %s"
+    rows = fetch_query(sql, (current_user_pk,))
+
+    events = []
+    for row in rows:
+        try:
+            # 2. 딕셔너리 형태일 때 id를 가져옵니다.
+            event_id = row['id']
+            title = row['title']
+            start = row['start_date']
+            end = row['end_date']
+            color = row['color']
+            desc = row['description']
+        except TypeError:
+            # 3. 튜플/리스트 형태일 때 id를 가져옵니다. (인덱스가 하나씩 밀립니다)
+            event_id = row[0]
+            title = row[1]
+            start = row[2]
+            end = row[3]
+            color = row[4]
+            desc = row[5]
+
+        events.append({
+            'id': event_id,  # <--- 프론트엔드 삭제 기능을 위해 꼭 필요!
+            'title': title,
+            'start': start.isoformat() if hasattr(start, 'isoformat') else str(start),
+            'end': end.isoformat() if end and hasattr(end, 'isoformat') else (
+                start.isoformat() if hasattr(start, 'isoformat') else str(start)),
+            'color': color if color else '#3788d8',
+            'extendedProps': {
+                'description': desc
+            }
+        })
+
+    return jsonify(events)
+
+# 일정 삭제
+@app.route('/calendar/delete', methods=['POST'])
+def delete_event():
+    data = request.get_json()
+    event_id = data.get('id')
+
+    # 딕셔너리 형태이므로 안전하게 id를 가져와서 삭제
+    sql = "DELETE FROM schedules WHERE id = %s AND member_id = %s"
+    execute_query(sql, (event_id, session.get('user_id')))
+
+    return jsonify({'success': True})
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------

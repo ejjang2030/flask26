@@ -1,0 +1,123 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-4"><i class="bi bi-calendar3 text-info"></i> 내 일정 관리</h4>
+            <div id='calendar'></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTitle">일정 제목</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-1">상세 내용</p>
+                <div id="modalDescription" class="p-3 bg-light rounded" style="min-height: 100px; white-space: pre-wrap;">
+                    </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-danger" id="btnDeleteEvent">
+                    <i class="bi bi-trash"></i> 삭제하기
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var eventModalElement = document.getElementById('eventModal');
+    var eventModal = new bootstrap.Modal(eventModalElement); // 부트스트랩 모달 초기화
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      locale: 'ko',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listWeek'
+      },
+      height: '75vh',
+      editable: true,
+      selectable: true,
+      displayEventTime: false, // 시간(오전 12시) 안 보이게 설정
+
+      // 1. 서버에서 일정 데이터 불러오기
+      events: '/calendar/events',
+
+      // 2. 날짜 클릭해서 일정 추가
+      dateClick: function(info) {
+        var title = prompt('새로운 일정의 제목을 입력해주세요:');
+        if (title && title.trim() !== "") {
+          var desc = prompt('상세 내용을 입력해주세요 (선택사항):');
+          fetch('/calendar/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title,
+              description: desc,
+              start: info.dateStr + " 00:00:00",
+              end: info.dateStr + " 23:59:59"
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) { calendar.refetchEvents(); }
+            else { alert('저장 실패!'); }
+          });
+        }
+      },
+
+      // 3. 일정 클릭 시 상세 모달 띄우기 (수정된 부분)
+      eventClick: function(info) {
+        // 모달 텍스트 채우기
+        document.getElementById('modalTitle').innerText = info.event.title;
+        // extendedProps에 저장된 description 가져오기
+        document.getElementById('modalDescription').innerText = info.event.extendedProps.description || "등록된 상세 내용이 없습니다.";
+
+        // 삭제 버튼 클릭 시 처리
+        var deleteBtn = document.getElementById('btnDeleteEvent');
+        deleteBtn.onclick = function() {
+          if (confirm("이 일정을 삭제하시겠습니까?")) {
+            fetch('/calendar/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: info.event.id })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                eventModal.hide(); // 모달 닫기
+                info.event.remove(); // 달력에서 즉시 삭제
+              } else {
+                alert('삭제 실패!');
+              }
+            });
+          }
+        };
+
+        eventModal.show(); // 모달 팝업 열기
+      }
+    });
+
+    calendar.render();
+  });
+</script>
+
+<style>
+    .fc-header-toolbar { margin-bottom: 1.5rem !important; }
+    .fc-col-header-cell { background-color: #f8f9fa; padding: 10px 0 !important; }
+    .fc-daygrid-day:hover { background-color: #f1f3f5; cursor: pointer; }
+    .fc-day-today { background-color: #e3f2fd !important; }
+    /* 일정 바 디자인 */
+    .fc-event { cursor: pointer; padding: 2px 4px; }
+</style>
+{% endblock %}
