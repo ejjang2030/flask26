@@ -841,8 +841,8 @@ if not bool(os.getenv("FLASK_DEBUG", 1)):
 else:
     UPLOAD_FOLDER = 'uploads/'
     # 폴더 부재 시 자동 생성
-    if not os.path.exists(UPLOAD_FOLDER) : # 'import os' 상단에 추가
-        os.makedirs(UPLOAD_FOLDER) # os.makedirs(경로) : 폴더 생성용 코드
+    # if not os.path.exists(UPLOAD_FOLDER) : # 'import os' 상단에 추가
+    #     os.makedirs(UPLOAD_FOLDER) # os.makedirs(경로) : 폴더 생성용 코드
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # 최대 용량 제한 (e.g. 16MB)
