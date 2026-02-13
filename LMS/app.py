@@ -909,17 +909,11 @@ def filesboard_delete(post_id) :
     if post['member_id'] != session['user_id'] and session.get('user_role') != 'admin' :
         return "<script>alert('삭제 권한이 없습니다.'); history.back();</script>"
 
-    PostService.delete_post(post_id)
-    return "<script>alert('성공적으로 삭제되었습니다.'); location.href='/filesboard';</script>"
-
-<<<<<<< Updated upstream
-# 파일 게시판수정
-=======
+    if PostService.delete_post(post_id):
+        return "<script>alert('성공적으로 삭제되었습니다.'); location.href='/filesboard';</script>"
     else :
         return "<script>alert('삭제 중 오류가 발생했습니다.'); history.back();</script>"
 
-# 파일 게시판 - 수정
->>>>>>> Stashed changes
 @app.route('/filesboard/edit/<int:post_id>', methods=['GET', 'POST'])
 def filesboard_edit(post_id) :
 
