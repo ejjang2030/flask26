@@ -22,9 +22,7 @@
                 <li class="nav-item">
                     <a class="nav-link px-3" href="/filesboard">자료실</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/chat">랜덤채팅</a>
-                </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="scoreDropdown" role="button" data-bs-toggle="dropdown">
                         성적관리
@@ -44,69 +42,66 @@
                         {% endif %}
                     </ul>
                 </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/mbti">개발자 MBTI 측정</a>
-                </li>
-
-<!--                    <li class="nav-item dropdown">-->
-<!--                        <a class="nav-link dropdown-toggle px-3" href="#" id="scoreDropdown" role="button" data-bs-toggle="dropdown">-->
-<!--                            성적관리-->
-<!--                        </a>-->
-<!--                        <ul class="dropdown-menu dropdown-menu-dark shadow border-0 mt-2">-->
-<!--                            {% if session.get('user_id') %}-->
-<!--                                <li><a class="dropdown-item py-2" href="/score/my">내 성적 조회</a></li>-->
-<!--                            {% endif %}-->
-
-<!--                            {% if session.get('user_role') in ('admin', 'manager') %}-->
-<!--                                <li><hr class="dropdown-divider bg-secondary"></li>-->
-<!--                                <li><h6 class="dropdown-header text-uppercase fs-7 fw-bold text-info">Admin Control</h6></li>-->
-<!--                                <li><a class="dropdown-item py-2" href="/score/members">학생 성적 입력</a></li>-->
-<!--                                <li><a class="dropdown-item py-2" href="/score/list">전체 성적 현황</a></li>-->
-<!--                            {% endif %}-->
-<!--                        </ul>-->
-<!--                    </li>-->
                 {% if session.get('user_id') %}
-                <li class="nav-item">
-                    <a class="nav-link" href="/fortune"> 나의 운세</a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="playgroundDropdown" role="button" data-bs-toggle="dropdown">
+                        놀이터
+                    </a>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="/chat">랜덤채팅</a></li>
+                        <li><a class="dropdown-item" href="/mbti">개발자 MBTI 측정</a></li>
+                        <li><a class="dropdown-item" href="/fortune"> 나의 운세</a></li>
+                    </ul>
                 </li>
                 {% endif %}
             </ul>
 
             <ul class="navbar-nav align-items-lg-center">
                 {% if session.get('user_id') %}
-                    <li class="nav-item me-2">
-                        <span class="nav-link badge bg-secondary text-white px-3 py-2 rounded-pill fw-normal">
-                            <span class="text-info">{{ session['user_role'] }}</span> | {{ session['user_name'] }}님
-                        </span>
-                    </li>
-
+                    {# 관리자 전용 메뉴는 중요도가 높으므로 드롭다운 밖에 유지하거나 안으로 넣을 수 있습니다. 여기서는 밖에 두었습니다. #}
                     {% if session.get('user_role') == 'admin' %}
                         <li class="nav-item">
-                            <a href="/admin" class="nav-link">⚙️ 관리자</a>
+                            <a href="/admin" class="nav-link px-2">⚙️ 관리자</a>
                         </li>
                     {% endif %}
 
-                    <li class="nav-item">
-                        <a href="/memo" class="nav-link px-2">
-                            <i class="bi bi-sticky-fill text-info"></i> 메모
+                    <li class="nav-item dropdown ms-lg-2">
+                        <a class="nav-link p-0 d-flex align-items-center dropdown-toggle hide-arrow"
+                           href="#" id="userProfileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="badge bg-secondary text-white rounded-pill fw-normal d-flex align-items-center p-1 pe-3 shadow-sm">
+                                <img class="avatar avatar-32 bg-light rounded-circle text-white me-2 {{ '' if session['user_profile'] else 'p-2' }}"
+                                     alt="프로필"
+                                     style="width: 32px; height: 32px; object-fit: cover;"
+                                     src="{{ session['user_profile'] if session['user_profile'] else 'https://raw.githubusercontent.com/twbs/icons/main/icons/person-fill.svg' }}">
+                                {{ session['user_name'] }}님
+                            </span>
                         </a>
-                    </li>
 
-                    <li class="nav-item">
-                        <a href="/calendar" class="nav-link px-2">
-                            <i class="bi bi-calendar-check text-info"></i> 캘린더
-                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userProfileDropdown">
+                            <li><h6 class="dropdown-header">개인 메뉴</h6></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="/mypage">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i> 마이페이지
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="/memo">
+                                    <i class="bi bi-sticky-fill me-2 text-info"></i> 메모장
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="/calendar">
+                                    <i class="bi bi-calendar-check me-2 text-success"></i> 캘린더
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center text-danger" href="/logout">
+                                    <i class="bi bi-box-arrow-right me-2"></i> 로그아웃
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="/mypage">마이페이지</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light btn-sm ms-lg-3 px-3 rounded-pill" href="/logout">로그아웃</a>
-                    </li>
-
                 {% else %}
                     <li class="nav-item">
                         <a class="nav-link px-3" href="/login">로그인</a>
@@ -116,6 +111,12 @@
                     </li>
                 {% endif %}
             </ul>
+            <style>
+                /* 드롭다운 화살표 제거 */
+                .hide-arrow::after {
+                    display: none !important;
+                }
+            </style>
         </div>
     </div>
 </nav>

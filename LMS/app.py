@@ -87,10 +87,14 @@ def login():
     # [개선] SELECT 로직이 한 줄로 줄어듦
     user = fetch_query("SELECT * FROM members WHERE uid = %s", (uid,), one=True)
 
+    if not bool(user['active']):
+        return "<script>alert('계정이 삭제되었습니다.');history.back();</script>"
+
     if user and user['password'] == upw:
         session['user_id'] = user['id']
         session['user_name'] = user['name']
         session['user_role'] = user['role']
+        session['user_profile'] = user['profile_img']
         return redirect(url_for('index'))
     else:
         return "<script>alert('로그인 실패');history.back();</script>"
@@ -1248,13 +1252,11 @@ def handle_leave(data):
 #                                                 메모장
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # 메모장 메인 (목록 조회)
 @app.route('/memo')
+@login_required
 def memo_list():
-    if 'user_id' not in session:
-        flash('로그인이 필요한 서비스입니다.')
-        return redirect(url_for('login'))
-
     # 팀 프로젝트 규칙: session['user_id']에 PK가 들어있음
     current_user_pk = session.get('user_id')
 
@@ -1352,11 +1354,8 @@ def memo_pin(memo_id):
 # ----------------------------------------------------------------------------------------------------------------------
 # 캘린더 클릭
 @app.route('/calendar')
+@login_required
 def calendar_main():
-    if 'user_id' not in session:
-        flash('로그인이 필요한 서비스입니다.')
-        return redirect(url_for('login'))
-
     return render_template('calendar.html')
 
 

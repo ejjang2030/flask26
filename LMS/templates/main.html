@@ -6,10 +6,9 @@
 <div class="container py-5">
 
     <div class="row align-items-center mb-5 bg-white rounded-4 shadow-lg p-5 border-start border-5" style="border-color: #20828A !important;">
-
         <div class="col-lg-7">
             <span class="badge mb-3 px-3 py-2 fw-normal" style="background-color: rgba(32, 130, 138, 0.1); color: #20828A;">
-                <i class="bi bi-stars me-1"></i> Community Service
+                <i class="bi bi-stars me-1"></i> Integrated Platform
             </span>
 
             <h1 class="display-5 fw-bold mb-3 text-dark">Communa 플랫폼</h1>
@@ -17,19 +16,16 @@
             <p class="lead text-secondary mb-4">
                 사람들을 잇고, 지식을 나누며, 즐겁게 대화하세요.
                 <br class="d-none d-md-block">
-                회원 관리, 게시판, 실시간 랜덤 채팅까지 통합된 서비스입니다.
+                업무 효율을 높이는 도구와 재미있는 놀이터가 준비되어 있습니다.
             </p>
 
             <div class="d-flex flex-wrap gap-2">
                 {% if session.get('user_id') %}
                     <a href="/board" class="btn btn-primary btn-lg px-4 border-0 shadow-sm" style="background-color: #269CA6;">
-                        게시판
+                        <i class="bi bi-pencil-square me-1"></i> 게시판 바로가기
                     </a>
-                    <a href="/chat/random" class="btn btn-outline-secondary btn-lg px-4 shadow-sm">
-                        랜덤 채팅 시작
-                    </a>
-                    <a href='/fortune' class="btn btn-lg px-4 border-0 shadow-sm text-white" style="background-color: #269CA6;">
-                        💫 나의 운세 확인하기
+                    <a href="/chat" class="btn btn-outline-secondary btn-lg px-4 shadow-sm">
+                        <i class="bi bi-chat-dots me-1"></i> 랜덤 채팅
                     </a>
                 {% else %}
                     <a href="/login" class="btn btn-primary btn-lg px-4 border-0 shadow-sm" style="background-color: #269CA6;">
@@ -45,7 +41,7 @@
         <div class="col-lg-5 text-center mt-4 mt-lg-0">
             <div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow"
                  style="width:200px; height:200px; background-color: rgba(32, 130, 138, 0.05);">
-                <img src="{{ url_for('static', filename='logo/communa_logo.svg') }}" style="width: 120px; height: 120px;">
+                <img src="{{ url_for('static', filename='logo/communa_logo.svg') }}" style="width: 120px; height: 120px;" alt="Logo">
             </div>
         </div>
     </div>
@@ -55,17 +51,21 @@
         <div class="col-md-4">
             <div class="card border-0 shadow h-100 rounded-4 feature-card">
                 <div class="card-body p-4 text-center">
-                    <div class="icon-box mb-3 mx-auto" style="color: #20828A;">
-                        <i class="bi bi-person-bounding-box fs-1"></i>
+                    <div class="icon-box mb-3 mx-auto text-info">
+                        <i class="bi bi-tools fs-1"></i>
                     </div>
-                    <h5 class="fw-bold">회원 시스템</h5>
-                    <p class="text-muted small">
-                        나만의 프로필을 관리하고<br>Communa의 정식 회원이 되어보세요.
+                    <h5 class="fw-bold mb-3">개인 도구</h5>
+                    <p class="text-muted small mb-4">
+                        나만의 기록과 일정을<br>체계적으로 관리하세요.
                     </p>
-                    <a href="{% if session.get('user_id') %}/mypage{% else %}/login{% endif %}"
-                       class="btn btn-sm px-3 rounded-pill" style="background-color: #269CA6; color: white;">
-                        바로가기
-                    </a>
+                    <div class="d-grid gap-2">
+                        <a href="/memo" class="btn btn-outline-info rounded-pill btn-sm">
+                            <i class="bi bi-sticky-fill me-1"></i> 메모장
+                        </a>
+                        <a href="/calendar" class="btn btn-outline-info rounded-pill btn-sm">
+                            <i class="bi bi-calendar-check me-1"></i> 캘린더
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -73,62 +73,86 @@
         <div class="col-md-4">
             <div class="card border-0 shadow h-100 rounded-4 feature-card">
                 <div class="card-body p-4 text-center">
-                    <div class="icon-box mb-3 mx-auto" style="color: #20828A;">
-                        <i class="bi bi-chat-square-quote fs-1"></i>
+                    <div class="icon-box mb-3 mx-auto text-success">
+                        <i class="bi bi-people-fill fs-1"></i>
                     </div>
-                    <h5 class="fw-bold">자유 게시판</h5>
-                    <p class="text-muted small">
-                        다양한 주제로 소통하세요.<br>지식 공유와 일상 이야기가 가득합니다.
+                    <h5 class="fw-bold mb-3">커뮤니티</h5>
+                    <p class="text-muted small mb-4">
+                        지식을 공유하고<br>자료를 함께 나누세요.
                     </p>
-                    <a href="/board" class="btn btn-sm px-3 rounded-pill" style="background-color: #269CA6; color: white;">
-                        게시판 이동
-                    </a>
+                    <div class="d-grid gap-2">
+                        <a href="/board" class="btn btn-outline-success rounded-pill btn-sm">
+                            <i class="bi bi-chat-square-text me-1"></i> 자유 게시판
+                        </a>
+                        <a href="/filesboard" class="btn btn-outline-success rounded-pill btn-sm">
+                            <i class="bi bi-folder-fill me-1"></i> 자료실
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card border-0 shadow-lg h-100 rounded-4 feature-card">
+            <div class="card border-0 shadow h-100 rounded-4 feature-card">
                 <div class="card-body p-4 text-center">
-                    <div class="icon-box mb-3 mx-auto" style="color: #20828A;">
-                        <i class="bi bi-lightning-charge fs-1"></i>
+                    <div class="icon-box mb-3 mx-auto text-warning">
+                        <i class="bi bi-controller fs-1"></i>
                     </div>
-                    <h5 class="fw-bold">랜덤 채팅</h5>
-                    <p class="text-muted small">
-                        익명의 사용자들과<br>실시간으로 즐겁게 대화해 보세요.
+                    <h5 class="fw-bold mb-3">놀이터</h5>
+                    <p class="text-muted small mb-4">
+                        심심할 땐 여기서!<br>다양한 즐길거리가 있습니다.
                     </p>
-                    <a href="{% if session.get('user_id') %}/chat/random{% else %}/login{% endif %}"
-                       class="btn btn-sm px-3 rounded-pill" style="background-color: #269CA6; color: white;">
-                        채팅 시작
-                    </a>
+                    <div class="d-grid gap-2">
+                        <a href="/chat" class="btn btn-outline-warning rounded-pill btn-sm text-dark">
+                            <i class="bi bi-lightning-fill me-1"></i> 랜덤 채팅
+                        </a>
+                        <a href="/mbti" class="btn btn-outline-warning rounded-pill btn-sm text-dark">
+                            <i class="bi bi-cpu-fill me-1"></i> 개발자 MBTI
+                        </a>
+                        <a href="/fortune" class="btn btn-outline-warning rounded-pill btn-sm text-dark">
+                            <i class="bi bi-stars me-1"></i> 나의 운세
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <div class="mt-5 p-4 rounded-4 shadow-lg border-0" style="background-color: #f1f3f5;">
-        <h6 class="fw-bold text-dark"><i class="bi bi-megaphone me-2 text-warning"></i>공지사항</h6>
-        <ul class="mb-0 small text-muted lh-lg">
-            <li>Communa 서비스는 사용자 간의 건전한 소통 문화를 지향합니다.</li>
-            <li>실시간 채팅 시 상대방에 대한 예의를 지켜주세요.</li>
-            <li>서비스 개선 제안은 마이페이지 1:1 문의를 이용해주세요.</li>
+    <div class="mt-5 p-4 rounded-4 shadow-lg border-0" style="background-color: #f8f9fa;">
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-megaphone-fill me-2 text-danger"></i>서비스 공지사항</h6>
+        <ul class="mb-0 small text-muted lh-lg list-unstyled">
+            <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Communa 서비스는 사용자 간의 건전한 소통 문화를 지향합니다.</li>
+            <li><i class="bi bi-check-circle-fill me-2 text-success"></i>실시간 채팅 시 상대방에 대한 예의를 지켜주세요.</li>
+            <li><i class="bi bi-check-circle-fill me-2 text-success"></i>서비스 개선 제안은 마이페이지 1:1 문의를 이용해주세요.</li>
         </ul>
     </div>
 
 </div>
 
 <style>
-    /* 카드 호버 효과: 사용자가 마우스를 올리면 살짝 들리는 느낌 */
+    /* 카드 호버 효과 */
     .feature-card {
-        transition: transform 0.3s ease, shadow 0.3s ease;
+        transition: all 0.3s ease;
+        background: white;
     }
     .feature-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
 
-    /* 전체 배경색 살짝 조정 */
+    /* 아이콘 박스 스타일 */
+    .icon-box {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
     body {
         background-color: #fdfdfd;
     }
