@@ -7,6 +7,9 @@ from werkzeug.utils import secure_filename
 
 
 import uuid
+
+from LMS.common import upload_file
+
 load_dotenv()
 import requests
 import traceback
@@ -230,33 +233,33 @@ def score_my():
         conn.close()
 
 # 마이페이지 - 프로필 사진
+@app.route('/profile/upload', methods=['POST'])
 def profile_upload():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    print('request.files :', request.files)
     if 'profile_img' not in request.files:
         return "<script>alert('파일이 없습니다.');history.back();</script>"
 
     file = request.files['profile_img']
+    print('file :', file)
     if file.filename == '':
         return "<script>alert('선택된 파일이 없습니다.');history.back();</script>"
 
     if file:
         try:
-            # [2] 파일명 생성: uuid를 사용해 datetime.time 관련 AttributeError를 방지합니다.
-            ext = os.path.splitext(file.filename)[1].lower()
-            new_filename = f"profile_{session['user_id']}_{uuid.uuid4().hex[:8]}{ext}"
+            file_url = upload_file(file, folder="profiles")
+            if file_url:
+                origin_name = file.filename
+                save_name = file_url
+                file_path = file_url
+                print('file_path :', file_path)
+                # [4] DB 업데이트
+                sql = "UPDATE members SET profile_img = %s WHERE id = %s"
+                execute_query(sql, (file_path, session['user_id']))
 
-            # [3] 저장 경로: 반드시 app.config['UPLOAD_FOLDER']를 사용하여 static 안에 넣습니다.
-            # 이 코드가 있어야 LMS/uploads가 생기지 않고 static/uploads에 저장됩니다.
-            full_save_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
-            file.save(full_save_path)
-
-            # [4] DB 업데이트
-            sql = "UPDATE members SET profile_img = %s WHERE id = %s"
-            execute_query(sql, (new_filename, session['user_id']))
-
-            return "<script>alert('프로필 사진이 변경되었습니다.');location.href='/mypage';</script>"
+                return "<script>alert('프로필 사진이 변경되었습니다.');location.href='/mypage';</script>"
 
         except Exception as e:
             # 어떤 에러인지 정확히 알기 위해 f-string 사용
@@ -1384,6 +1387,7 @@ def add_event():
 
     return jsonify({'success': True})
 
+
 # 일정 보기
 @app.route('/calendar/events')
 def get_events():
@@ -1449,6 +1453,7 @@ def delete_event():
 @app.route('/')
 def index():
     return render_template('main.html')
+
 
 if __name__ == '__main__':
     socketio.run(
