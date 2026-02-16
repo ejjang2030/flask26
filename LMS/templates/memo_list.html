@@ -1,73 +1,184 @@
 {% extends 'layout.html' %}
-{% block content %}
-<div class="container-fluid mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-11">
-            <div class="row shadow-sm rounded border overflow-hidden" style="height: 80vh; background-color: #fff;">
 
-                <div class="col-md-3 border-end p-0 bg-light">
-                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-                        <h6 class="fw-bold mb-0"><i class="bi bi-sticky-fill text-info"></i> 내 메모</h6>
-                        <button class="btn btn-sm btn-info text-white rounded-pill px-3" onclick="initNewMemo()">
-                            <i class="bi bi-plus-lg"></i> 신규
+{% block content %}
+<style>
+    /* Communa 브랜드 컬러 정의 */
+    :root {
+        --communa-primary: #20828A;
+        --communa-hover: #186b72;
+        --communa-light: rgba(32, 130, 138, 0.08);
+        --communa-bg: #f8f9fa;
+    }
+
+    /* 전체 레이아웃 컨테이너 */
+    .memo-container {
+        height: 80vh;
+        background-color: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        overflow: hidden; /* 전체 컨테이너 넘침 방지 */
+    }
+
+    /* 좌측 사이드바 (리스트) */
+    .sidebar {
+        background-color: #fcfcfc;
+        border-right: 1px solid #f0f0f0;
+        height: 100%; /* 높이 꽉 채우기 */
+    }
+
+    /* 메모 리스트 영역 (스크롤 설정 수정) */
+    #memo-list {
+        overflow-y: auto;   /* 세로 스크롤은 허용 */
+        overflow-x: hidden; /* [핵심] 가로 스크롤 절대 금지 */
+        height: 100%;
+        padding-bottom: 20px;
+    }
+
+    /* 메모 리스트 아이템 스타일 */
+    .memo-item {
+        border: 1px solid transparent;
+        border-radius: 12px;
+        margin: 0 10px 8px 10px;
+        transition: all 0.2s ease;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        cursor: pointer;
+        /* 내용이 길어도 박스를 넘어가지 않게 설정 */
+        max-width: calc(100% - 20px);
+    }
+
+    .memo-item:hover {
+        background-color: var(--communa-light);
+        transform: translateY(-2px);
+        border-color: rgba(32, 130, 138, 0.2);
+    }
+
+    .memo-item.active {
+        background-color: var(--communa-light);
+        border-color: var(--communa-primary);
+    }
+
+    /* 스크롤바 커스텀 */
+    #memo-list::-webkit-scrollbar { width: 6px; }
+    #memo-list::-webkit-scrollbar-thumb { background-color: #e0e0e0; border-radius: 3px; }
+    #memo-list::-webkit-scrollbar-track { background-color: transparent; }
+
+    /* 우측 에디터 영역 */
+    .editor-area {
+        background-color: white;
+        height: 100%;
+    }
+
+    .memo-title-input {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .memo-title-input::placeholder { color: #ced4da; }
+
+    .memo-content-area {
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: #555;
+    }
+
+    /* 버튼 스타일 */
+    .btn-communa {
+        background-color: var(--communa-primary);
+        color: white;
+        border: none;
+    }
+    .btn-communa:hover {
+        background-color: var(--communa-hover);
+        color: white;
+    }
+
+    .pin-active { color: #e63946; }
+    .pin-inactive { color: #adb5bd; }
+    .pin-inactive:hover { color: var(--communa-primary); }
+
+</style>
+
+<div class="container-fluid mt-4 mb-5" style="max-width: 1400px;">
+    <div class="row justify-content-center">
+        <div class="col-lg-12">
+
+            <div class="row memo-container g-0">
+                <div class="col-md-3 sidebar d-flex flex-column">
+                    <div class="p-4 pb-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="bi bi-journal-text me-2" style="color: var(--communa-primary);"></i>내 메모장
+                        </h5>
+                        <button class="btn btn-sm btn-communa rounded-pill px-3 py-2 shadow-sm fw-bold" onclick="initNewMemo()">
+                            <i class="bi bi-plus-lg me-1"></i>새 메모
                         </button>
                     </div>
 
-                    <div class="list-group list-group-flush overflow-auto" id="memo-list" style="max-height: calc(80vh - 60px);">
+                    <div class="px-3 mb-3 flex-shrink-0">
+                        <input type="text" class="form-control bg-light border-0 rounded-pill px-3" placeholder="메모 검색..." style="font-size: 0.9rem;">
+                    </div>
+
+                    <div id="memo-list" class="flex-grow-1">
                         {% for m in memos %}
-                        <button class="list-group-item list-group-item-action py-3 border-bottom"
-                                onclick="loadMemo({{ m.id }}, `{{ m.title }}`, `{{ m.content }}`)">
+                        <div class="list-group-item p-3 memo-item"
+                             onclick="loadMemo({{ m.id }}, `{{ m.title }}`, `{{ m.content }}`)">
 
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div class="fw-bold text-truncate" style="max-width: 80%;">
-                                    {% if m.is_pinned %}<span class="text-danger">📌</span>{% endif %}
-                                    {{ m.title }}
-                                </div>
-
-                                <span class="pin-btn" onclick="togglePin(event, {{ m.id }})" style="cursor: pointer; padding: 0 5px;">
-                                    {% if m.is_pinned %}
-                                        <i class="bi bi-pin-angle-fill text-danger" title="고정 해제"></i>
-                                    {% else %}
-                                        <i class="bi bi-pin-angle text-muted" title="상단 고정"></i>
-                                    {% endif %}
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0 text-truncate" style="max-width: 85%; color: #444;">
+                                    {{ m.title if m.title else '제목 없음' }}
+                                </h6>
+                                <span onclick="togglePin(event, {{ m.id }})" class="flex-shrink-0 ms-2" style="cursor: pointer;">
+                                    <i class="bi {{ 'bi-pin-angle-fill pin-active' if m.is_pinned else 'bi-pin-angle pin-inactive' }}"></i>
                                 </span>
                             </div>
 
-                            <div class="small text-muted d-flex justify-content-between">
-                                <span>#{{ loop.index }}</span>
-                                <span>{{ m.updated_at.strftime('%Y-%m-%d') }}</span>
+                            <p class="small text-muted text-truncate mb-2" style="max-width: 100%;">
+                                {{ m.content }}
+                            </p>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-light text-secondary border rounded-pill fw-normal" style="font-size: 0.7rem;">
+                                    {{ m.updated_at.strftime('%Y.%m.%d') }}
+                                </span>
                             </div>
-                        </button>
+                        </div>
                         {% else %}
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-emoji-smile d-block fs-2 mb-2"></i>
-                            첫 메모를 작성해보세요!
+                        <div class="text-center py-5 mt-5 text-muted">
+                            <i class="bi bi-pencil-square fs-1 mb-3 d-block opacity-50"></i>
+                            <p>작성된 메모가 없습니다.<br>새로운 아이디어를 기록해보세요!</p>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <div class="col-md-9 d-flex flex-column p-0">
-                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-                        <input type="hidden" id="memo-id">
-                        <input type="text" id="memo-title" class="form-control form-control-lg border-0 fw-bold"
-                               placeholder="메모 제목을 입력하세요" style="box-shadow: none;">
+                <div class="col-md-9 editor-area d-flex flex-column position-relative">
+                    <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white sticky-top z-1">
+                        <div class="text-muted small" id="status-bar">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>준비됨
+                        </div>
 
                         <div class="d-flex gap-2">
+                            <input type="hidden" id="memo-id">
                             <button id="delete-btn" class="btn btn-outline-danger btn-sm px-3 rounded-pill"
-                                    style="display:none;" onclick="deleteMemo()">삭제</button>
-                            <button class="btn btn-info text-white px-4 rounded-pill fw-bold" onclick="saveMemo()">저장</button>
+                                    style="display:none;" onclick="deleteMemo()">
+                                <i class="bi bi-trash3 me-1"></i>삭제
+                            </button>
+                            <button class="btn btn-communa px-4 py-2 rounded-pill fw-bold shadow-sm" onclick="saveMemo()">
+                                <i class="bi bi-save me-1"></i>저장하기
+                            </button>
                         </div>
                     </div>
 
-                    <textarea id="memo-content" class="form-control border-0 p-4 flex-grow-1"
-                              placeholder="내용을 입력하세요..." style="resize: none; box-shadow: none; font-size: 1.1rem;"></textarea>
-
-                    <div id="status-bar" class="p-2 px-3 bg-light border-top text-end small text-muted">
-                        준비됨
+                    <div class="px-5 pt-4">
+                        <input type="text" id="memo-title" class="form-control border-0 bg-transparent memo-title-input p-0"
+                               placeholder="제목을 입력하세요">
                     </div>
-                </div>
 
+                    <textarea id="memo-content" class="form-control border-0 bg-transparent flex-grow-1 px-5 py-4 memo-content-area"
+                              placeholder="여기에 내용을 자유롭게 작성하세요..." style="resize: none; box-shadow: none;"></textarea>
+
+                </div>
             </div>
         </div>
     </div>
@@ -79,24 +190,28 @@
         document.getElementById('memo-id').value = id;
         document.getElementById('memo-title').value = title;
         document.getElementById('memo-content').value = content;
-        document.getElementById('delete-btn').style.display = 'block';
-        document.getElementById('status-bar').innerText = "메모를 편집 중입니다.";
 
-        // 목록에서 선택된 느낌 주기 (Bootstrap 클래스 활용 가능)
-        document.getElementById('memo-title').focus();
+        document.getElementById('delete-btn').style.display = 'block';
+
+        const statusText = document.getElementById('status-bar');
+        statusText.innerHTML = `<i class="bi bi-pencil-fill text-primary me-1"></i> 편집 중...`;
     }
 
-    // 2. 새 메모 상태로 초기화
+    // 2. 새 메모 초기화
     function initNewMemo() {
         document.getElementById('memo-id').value = '';
         document.getElementById('memo-title').value = '';
         document.getElementById('memo-content').value = '';
+
         document.getElementById('delete-btn').style.display = 'none';
-        document.getElementById('status-bar').innerText = "새 메모 작성 모드";
+
+        const statusText = document.getElementById('status-bar');
+        statusText.innerHTML = `<i class="bi bi-sparkles text-warning me-1"></i> 새 메모 작성`;
+
         document.getElementById('memo-title').focus();
     }
 
-    // 3. 저장 (신규 생성 & 수정 통합)
+    // 3. 저장
     function saveMemo() {
         const id = document.getElementById('memo-id').value;
         const title = document.getElementById('memo-title').value;
@@ -107,6 +222,9 @@
             return;
         }
 
+        // 로딩 표시
+        document.getElementById('status-bar').innerText = "저장 중...";
+
         fetch('/memo/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -115,47 +233,33 @@
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                location.reload(); // 성공 시 목록 갱신
+                location.reload();
             } else {
                 alert(data.message || "저장 실패");
             }
-        })
-        .catch(err => console.error("Error:", err));
+        });
     }
 
     // 4. 삭제
     function deleteMemo() {
         const id = document.getElementById('memo-id').value;
-        if(!id || !confirm("이 메모를 삭제하시겠습니까?")) return;
+        if(!id || !confirm("정말로 이 메모를 삭제하시겠습니까?")) return;
 
         fetch(`/memo/delete/${id}`, { method: 'POST' })
         .then(res => res.json())
         .then(data => {
-            if(data.success) {
-                location.reload();
-            }
+            if(data.success) location.reload();
         });
     }
 
-    // 5. 메모 고정
+    // 5. 핀 고정
     function togglePin(event, id) {
-    event.stopPropagation(); // 메모 불러오기 이벤트 방지
-
-    fetch(`/memo/pin/${id}`, { method: 'POST' })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success) {
-            location.reload(); // 고정되면 순서가 바뀌어야 하니 새로고침!
-        }
-    });
-}
+        event.stopPropagation();
+        fetch(`/memo/pin/${id}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) location.reload();
+        });
+    }
 </script>
-
-<style>
-    /* 스크롤바 디자인 (선택사항) */
-    #memo-list::-webkit-scrollbar { width: 5px; }
-    #memo-list::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
-    /* 리스트 아이템 호버 효과 */
-    .list-group-item-action:hover { background-color: #f8f9fa; }
-</style>
 {% endblock %}

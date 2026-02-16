@@ -1,31 +1,147 @@
 {% extends 'layout.html' %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow border-0">
-        <div class="card-body p-4">
-            <h4 class="fw-bold mb-4"><i class="bi bi-calendar3 text-info"></i> 내 일정 관리</h4>
+<style>
+    /* Communa 브랜드 컬러 정의 */
+    :root {
+        --communa-primary: #20828A;
+        --communa-hover: #186b72;
+        --communa-light: rgba(32, 130, 138, 0.1);
+        --communa-bg: #f8f9fa;
+    }
+
+    /* 1. 캘린더 컨테이너 카드 */
+    .calendar-card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        background-color: white;
+        overflow: hidden;
+    }
+
+    /* 2. FullCalendar 커스텀 스타일링 (기본 파란색 덮어쓰기) */
+
+    /* 상단 툴바 버튼 (오늘, 월, 주, 일 등) */
+    .fc .fc-button-primary {
+        background-color: white;
+        border-color: #e0e0e0;
+        color: #555;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    .fc .fc-button-primary:hover {
+        background-color: var(--communa-light);
+        border-color: var(--communa-primary);
+        color: var(--communa-primary);
+    }
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+        background-color: var(--communa-primary);
+        border-color: var(--communa-primary);
+        color: white;
+    }
+
+    /* 요일 헤더 */
+    .fc-col-header-cell {
+        background-color: #fcfcfc;
+        padding: 15px 0 !important;
+        color: #555;
+        font-weight: 600;
+        border-bottom: 2px solid #f0f0f0 !important;
+    }
+    .fc-col-header-cell-cushion {
+        text-decoration: none;
+        color: #333;
+    }
+
+    /* 오늘 날짜 하이라이트 */
+    .fc-day-today {
+        background-color: var(--communa-light) !important;
+    }
+
+    /* 날짜 셀 호버 효과 */
+    .fc-daygrid-day:hover {
+        background-color: #f9f9f9;
+        cursor: pointer;
+    }
+
+    /* 일정(Event) 막대 디자인 */
+    .fc-event {
+        cursor: pointer;
+        padding: 3px 6px;
+        border-radius: 6px;
+        border: none;
+        background-color: var(--communa-primary); /* 기본 배경 */
+        border-left: 4px solid var(--communa-hover); /* 왼쪽 포인트 컬러 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+
+    /* 일정 제목 텍스트 */
+    .fc-event-title {
+        font-weight: 500;
+        color: white;
+    }
+
+    /* 3. 모달 스타일 */
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1.5rem;
+    }
+    .modal-footer {
+        border-top: none;
+        padding: 1.5rem;
+    }
+</style>
+
+<div class="container mt-4 mb-5" style="max-width: 1200px;">
+    <div class="card calendar-card">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0" style="color: #333;">
+                    <i class="bi bi-calendar-check me-2" style="color: #20828A;"></i> 내 일정 관리
+                </h4>
+                <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
+                    <i class="bi bi-info-circle me-1"></i> 날짜를 클릭하여 일정 추가
+                </span>
+            </div>
+
             <div id='calendar'></div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="modalTitle">일정 제목</h5>
+                <h5 class="modal-title fw-bold" id="modalTitle">
+                    <i class="bi bi-bookmark-star-fill text-warning me-2"></i>일정 상세
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p class="text-muted mb-1">상세 내용</p>
-                <div id="modalDescription" class="p-3 bg-light rounded" style="min-height: 100px; white-space: pre-wrap;">
-                    </div>
+            <div class="modal-body px-4">
+                <label class="small text-muted fw-bold mb-2">상세 내용</label>
+                <div id="modalDescription" class="p-3 bg-light rounded-3 text-secondary"
+                     style="min-height: 100px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">
+                </div>
             </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-danger" id="btnDeleteEvent">
-                    <i class="bi bi-trash"></i> 삭제하기
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger rounded-pill px-4" id="btnDeleteEvent">
+                    <i class="bi bi-trash3 me-1"></i> 삭제
                 </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn text-white rounded-pill px-4" data-bs-dismiss="modal"
+                        style="background-color: #20828A;">확인</button>
             </div>
         </div>
     </div>
@@ -35,29 +151,34 @@
   document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var eventModalElement = document.getElementById('eventModal');
-    var eventModal = new bootstrap.Modal(eventModalElement); // 부트스트랩 모달 초기화
+    var eventModal = new bootstrap.Modal(eventModalElement);
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      locale: 'ko',
+      locale: 'ko', // 한국어 설정
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,listWeek'
       },
-      height: '75vh',
-      editable: true,
-      selectable: true,
-      displayEventTime: false, // 시간(오전 12시) 안 보이게 설정
+      height: 'auto',       // 높이 자동 조절
+      aspectRatio: 1.8,     // 비율 조절
+      editable: true,       // 드래그 수정 가능 여부
+      selectable: true,     // 날짜 선택 가능 여부
+      displayEventTime: false,
+      dayMaxEvents: true,   // 이벤트가 많으면 '+2 more' 처럼 표시
 
-      // 1. 서버에서 일정 데이터 불러오기
+      // 1. 일정 데이터 불러오기
       events: '/calendar/events',
 
-      // 2. 날짜 클릭해서 일정 추가
+      // 2. 날짜 클릭 (일정 추가)
       dateClick: function(info) {
-        var title = prompt('새로운 일정의 제목을 입력해주세요:');
+        // 디자인 통일성을 위해 prompt 대신 모달을 쓰면 좋겠지만, 로직 유지를 위해 prompt 사용
+        var title = prompt('📅 새로운 일정의 제목을 입력해주세요:');
+
         if (title && title.trim() !== "") {
-          var desc = prompt('상세 내용을 입력해주세요 (선택사항):');
+          var desc = prompt('📝 상세 내용을 입력해주세요 (선택사항):');
+
           fetch('/calendar/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -70,23 +191,28 @@
           })
           .then(res => res.json())
           .then(data => {
-            if (data.success) { calendar.refetchEvents(); }
-            else { alert('저장 실패!'); }
+            if (data.success) {
+                calendar.refetchEvents(); // 캘린더 새로고침
+            } else {
+                alert('일정 저장에 실패했습니다.');
+            }
           });
         }
       },
 
-      // 3. 일정 클릭 시 상세 모달 띄우기 (수정된 부분)
+      // 3. 일정 클릭 (상세 보기 & 삭제)
       eventClick: function(info) {
-        // 모달 텍스트 채우기
+        // 모달 데이터 바인딩
         document.getElementById('modalTitle').innerText = info.event.title;
-        // extendedProps에 저장된 description 가져오기
-        document.getElementById('modalDescription').innerText = info.event.extendedProps.description || "등록된 상세 내용이 없습니다.";
 
-        // 삭제 버튼 클릭 시 처리
+        const desc = info.event.extendedProps.description;
+        document.getElementById('modalDescription').innerText = desc ? desc : "작성된 상세 내용이 없습니다.";
+
+        // 삭제 버튼 이벤트
         var deleteBtn = document.getElementById('btnDeleteEvent');
+        // 기존 이벤트 리스너 중복 방지를 위해 cloneNode 사용 또는 onclick 재할당
         deleteBtn.onclick = function() {
-          if (confirm("이 일정을 삭제하시겠습니까?")) {
+          if (confirm("정말로 이 일정을 삭제하시겠습니까?")) {
             fetch('/calendar/delete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -95,29 +221,20 @@
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                eventModal.hide(); // 모달 닫기
-                info.event.remove(); // 달력에서 즉시 삭제
+                eventModal.hide();
+                info.event.remove();
               } else {
-                alert('삭제 실패!');
+                alert('삭제에 실패했습니다.');
               }
             });
           }
         };
 
-        eventModal.show(); // 모달 팝업 열기
+        eventModal.show();
       }
     });
 
     calendar.render();
   });
 </script>
-
-<style>
-    .fc-header-toolbar { margin-bottom: 1.5rem !important; }
-    .fc-col-header-cell { background-color: #f8f9fa; padding: 10px 0 !important; }
-    .fc-daygrid-day:hover { background-color: #f1f3f5; cursor: pointer; }
-    .fc-day-today { background-color: #e3f2fd !important; }
-    /* 일정 바 디자인 */
-    .fc-event { cursor: pointer; padding: 2px 4px; }
-</style>
 {% endblock %}
