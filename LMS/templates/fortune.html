@@ -1,70 +1,84 @@
 {% extends 'layout.html' %}
 {% block content %}
 <style>
-    /* 공지사항 때 썼던 느낌과 비슷하게 깔끔한 스타일 추가 */
-    .fortune-card { border-radius: 15px; border: none; }
-    .btn-fortune { background-color: #8C7E7B; color: white; border: none; }
-    .btn-fortune:hover { background-color: #6d6260; color: white; }
-    .notice-row td { background-color: #f0f7f7 !important; }
-    .badge-hot { background-color: #8C7E7B !important; color: white; }
+    /* Communa 스타일 적용 */
+    .fortune-card { border-radius: 20px; border: none; }
+    .btn-fortune { background-color: #20828A; color: white; border: none; border-radius: 50px; font-weight: bold; }
+    .btn-fortune:hover { background-color: #186b72; color: white; transform: translateY(-2px); transition: all 0.2s; }
+
+    /* 결과 테이블 스타일 */
+    .table th { background-color: rgba(32, 130, 138, 0.05); color: #20828A; vertical-align: middle; }
+    .result-box { animation: fadeInUp 0.5s ease-out; }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 
 <div class="container mt-5" style="max-width: 800px;">
-    <h2 class="text-center mb-4">💫 띠별 운세 💫</h2>
+    <h2 class="text-center mb-4 fw-bold" style="color: #20828A;">💫 오늘의 띠별 운세 💫</h2>
 
-    <div class="card shadow-sm mb-5 fortune-card">
-        <div class="card-body bg-light" style="border-radius: 15px;">
-            <form method="POST" class="row g-3">
+    <div class="card shadow-lg mb-5 fortune-card">
+        <div class="card-body bg-white p-5">
+            <form method="GET" action="/fortune" class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">출생 연도</label>
-                    <input type="number" name="year" class="form-control" placeholder="YYYY" min="1900" max="2026" required>
+                    <label class="form-label fw-bold text-secondary">출생 연도</label>
+                    <input type="number" name="year" class="form-control form-control-lg bg-light border-0"
+                           placeholder="YYYY" min="1900" max="2026" required
+                           value="{{ request.args.get('year', '') }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">월</label>
-                    <input type="number" name="month" class="form-control" placeholder="MM" min="1" max="12" required>
+                    <label class="form-label fw-bold text-secondary">월</label>
+                    <input type="number" name="month" class="form-control form-control-lg bg-light border-0"
+                           placeholder="MM" min="1" max="12" required
+                           value="{{ request.args.get('month', '') }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">일</label>
-                    <input type="number" name="day" class="form-control" placeholder="DD" min="1" max="31" required>
+                    <label class="form-label fw-bold text-secondary">일</label>
+                    <input type="number" name="day" class="form-control form-control-lg bg-light border-0"
+                           placeholder="DD" min="1" max="31" required
+                           value="{{ request.args.get('day', '') }}">
                 </div>
                 <div class="col-12 text-center mt-4">
-                    <form method = "POST">
-                    <button type="submit" class="btn btn-fortune px-5 py-2">내 운세 확인하기</button>
-                    </form>
+                    <button type="submit" class="btn btn-fortune px-5 py-3 shadow-sm">
+                        <i class="bi bi-stars me-2"></i>내 운세 확인하기
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     {% if data %}
-    <div id="fortuneResult" class="animate__animated animate__fadeIn">
-        <h3 class="text-center mb-4 text-secondary">✨ {{ data.zodiac }} 운세 결과</h3>
-
-        <div class="table-responsive">
-            <table class="table table-bordered shadow-sm align-middle">
-                <tbody>
-                    <tr class="text-center">
-                        <th class="bg-light" style="width: 30%;">출생일 / 나이</th>
-                        <td><strong>{{ data.birth }}</strong> (현재 {{ data.age }}세)</td>
-                    </tr>
-                    <tr>
-                        <th class="text-center bg-light text-primary">오늘의 운세</th>
-                        <td class="p-3">{{ data.today }}</td>
-                    </tr>
-                    <tr>
-                        <th class="text-center bg-light text-danger">내일의 운세</th>
-                        <td class="p-3">{{ data.tomorrow }}</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div id="fortuneResult" class="result-box">
+        <div class="card shadow border-0 fortune-card overflow-hidden">
+            <div class="card-header text-white text-center py-3" style="background-color: #20828A;">
+                <h4 class="mb-0">✨ {{ data.zodiac }} 운세 결과</h4>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-bordered mb-0 align-middle">
+                    <tbody>
+                        <tr class="text-center">
+                            <th style="width: 25%;">정보</th>
+                            <td class="text-start ps-4">{{ data.birth }} (만 {{ data.age }}세)</td>
+                        </tr>
+                        <tr>
+                            <th class="text-center text-primary"><i class="bi bi-sun-fill me-2"></i>오늘</th>
+                            <td class="p-4 lh-lg">{{ data.today }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-center text-secondary"><i class="bi bi-moon-stars-fill me-2"></i>내일</th>
+                            <td class="p-4 lh-lg">{{ data.tomorrow }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="d-flex justify-content-center gap-3 mt-4 mb-5">
-            <button class="btn btn-outline-secondary px-4" onclick="copyLink()">
-                🔗 링크 복사
-            </button>
-            <button class="btn btn-dark px-4" onclick="copyFortuneText()">
-                📝 결과 텍스트 복사
+        <div class="d-grid gap-2 col-md-8 mx-auto mt-4 mb-5">
+            <button onclick="shareResult()" class="btn btn-dark rounded-pill fw-bold py-3 shadow-sm">
+                <i class="bi bi-share-fill me-2"></i>
+                <span id="shareBtnText">운세 결과 공유하기</span>
             </button>
         </div>
     </div>
@@ -72,26 +86,48 @@
 </div>
 
 <script>
-// 링크 복사 함수
-function copyLink() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-        alert("운세 페이지 링크가 복사되었습니다! 친구들에게 알려주세요.");
+    // 1. 공유할 데이터 준비 (현재 페이지 URL에 이미 ?year=... 정보가 들어있음)
+    const shareUrl = window.location.href;
+
+    // 템플릿 문법이 자바스크립트 문자열 안에서 깨지지 않도록 처리
+    {% if data %}
+    const shareTitle = "💫 [운세 도착] {{ data.zodiac }} 오늘의 운세";
+    const shareText = "오늘의 운세: {{ data.today | truncate(30) }}... \n자세한 내용은 링크에서 확인하세요!";
+    {% else %}
+    const shareTitle = "Communa 무료 운세";
+    const shareText = "오늘의 띠별 운세를 확인해보세요.";
+    {% endif %}
+
+    // 2. 통합 공유 함수 (모바일: 공유시트 / PC: 클립보드)
+    async function shareResult() {
+        // (A) 모바일 등 공유 기능이 있는 브라우저
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl,
+                });
+            } catch (err) {
+                console.log('공유 취소됨');
+            }
+        }
+        // (B) PC 등 공유 기능이 없는 브라우저 -> 클립보드 복사
+        else {
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('운세 링크가 복사되었습니다! \n카톡이나 SNS에 붙여넣기 하세요.');
+            } catch (err) {
+                prompt('이 주소를 복사해서 공유하세요:', shareUrl);
+            }
+        }
+    }
+
+    // PC 접속 시 버튼 텍스트 변경 (UX 개선)
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!navigator.share) {
+            document.getElementById('shareBtnText').innerText = "운세 링크 복사하기";
+        }
     });
-}
-
-// 결과 텍스트 복사 함수
-function copyFortuneText() {
-    const zodiac = "{{ data.zodiac if data else '' }}";
-    const today = "{{ data.today if data else '' }}";
-    const tomorrow = "{{ data.tomorrow if data else '' }}";
-
-    // 복사될 텍스트 형식 구성
-    const text = `[🔮 ${zodiac} 운세 공유]\n\n🌟 오늘의 운세:\n${today}\n\n🌙 내일의 운세:\n${tomorrow}\n\n확인하러 가기: ${window.location.href}`;
-
-    navigator.clipboard.writeText(text).then(() => {
-        alert("운세 결과가 텍스트로 복사되었습니다! 카톡 등에 붙여넣기 하세요.");
-    });
-}
 </script>
 {% endblock %}

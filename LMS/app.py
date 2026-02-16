@@ -36,6 +36,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, g
 import requests
 from io import BytesIO
 from math import ceil
+from openai import OpenAI
 
 app = Flask(__name__)
 
@@ -50,6 +51,10 @@ app.secret_key = FLASK_APP_KEY
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+chat_gpt_client = OpenAI(
+    api_key=os.getenv("CHAT_GPT_API_KEY"),
+)
 
 # 2. 폴더가 없는 경우
 # if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -1031,111 +1036,76 @@ def filesboard_edit(post_id) :
 # ----------------------------------------------------------------------------------------------------------------------
 
 # 띠별 운세 확인
-@app.route('/fortune', methods=['GET', 'POST'])
+@app.route('/fortune')  # GET 요청이 기본입니다.
 def fortune():
-    if not session.get('user_id'):
-        return "<script>alert('로그인 후 이용 가능합니다.'); location.href='/login';</script>"
-
     data = None
 
-    if request.method == 'POST':
+    # URL 파라미터(쿼리스트링)에서 데이터 가져오기
+    # 예: /fortune?year=1996&month=4&day=11
+    year = request.args.get('year')
+    month = request.args.get('month')
+    day = request.args.get('day')
+
+    # 데이터가 모두 있을 때만 운세 로직 실행
+    if year and month and day:
         try:
-            year = int(request.form.get('year'))
-            month = int(request.form.get('month'))
-            day = int(request.form.get('day'))
+            year = int(year)
+            month = int(month)
+            day = int(day)
 
             # 1. 띠 계산
             zodiacs = ["원숭이띠", "닭띠", "개띠", "돼지띠", "쥐띠", "소띠", "호랑이띠", "토끼띠", "용띠", "뱀띠", "말띠", "양띠"]
             user_zodiac = zodiacs[year % 12]
 
-            # 2. 나이 계산 (현재 2026년 기준)
-            age = 2026 - year + 1
+            # 2. 나이 계산
+            current_year = date.today().year
+            age = current_year - year + 1
 
-            # 3. 오늘/내일 날짜 설정
-            today_date = datetime.now().date()
-            tomorrow_date = today_date + timedelta(days=1)
-
-            # 4. DB/크롤링 연동 로직 호출
-            today_content = get_db_fortune(user_zodiac, today_date)
-            tomorrow_content = get_db_fortune(user_zodiac, tomorrow_date)
+            # 3. 크롤링 (이전에 만든 함수 그대로 사용)
+            today_fortune, tomorrow_fortune = get_naver_fortune(user_zodiac)
 
             data = {
                 'birth': f"{year}년 {month}월 {day}일",
-                'zodiac': user_zodiac,
                 'age': age,
-                'today': today_content,
-                'tomorrow': tomorrow_content
+                'zodiac': user_zodiac,
+                'today': today_fortune,
+                'tomorrow': tomorrow_fortune
             }
-        except Exception as e:
-            print(f"운세 페이지 로직 에러: {e}")
-
+        except ValueError:
+            return "<script>alert('잘못된 입력입니다.'); location.href='/fortune';</script>"
 
     return render_template('fortune.html', data=data)
 
-# 네이버 운세
-def crawl_naver_fortune(zodiac_name, is_tomorrow=False):
-    target = "내일" if is_tomorrow else "오늘"
-    # 네이버 운세 검색 URL (더 정확한 경로로 수정)
-    url = f"https://search.naver.com/search.naver?query={zodiac_name}+{target}+운세"
 
-    # 실제 브라우저처럼 보이게 하는 필수 헤더
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.naver.com'
-    }
-
+def get_naver_fortune(zodiac):
+    """
+    zodiac: 띠 이름 (예: '쥐띠')
+    반환값: (오늘운세, 내일운세) 튜플
+    """
     try:
+        # 1. '내일' 키워드 없이 그냥 '{띠} 운세'로 검색해도 모든 탭 정보가 다 들어있습니다.
+        url = f"https://search.naver.com/search.naver?query={zodiac}+운세"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
         res = requests.get(url, headers=headers, timeout=5)
-        res.raise_for_status()  # 연결 실패 시 에러 발생
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 네이버 운세 텍스트 박스 선택 (여러 경우의 수 대비)
-        fortune_box = soup.select_one(".text._content") or soup.select_one(".infothumb .detail")
+        # 2. '_cs_fortune_text' 클래스를 가진 모든 요소를 찾습니다. (리스트 반환)
+        # 통상 순서: [0]=오늘, [1]=내일, [2]=이번주, [3]=이달, [4]=올해
+        texts = soup.select(".text._cs_fortune_text")
 
-        if fortune_box:
-            return fortune_box.get_text().strip()
+        if len(texts) >= 2:
+            today_text = texts[0].get_text().strip()  # 첫 번째가 오늘
+            tomorrow_text = texts[1].get_text().strip()  # 두 번째가 내일
+            return today_text, tomorrow_text
         else:
-            return f"현재 {zodiac_name} {target} 운세 정보를 찾을 수 없습니다. (네이버 UI 변경 가능성)"
+            return "운세 데이터를 찾을 수 없습니다.", "운세 데이터를 찾을 수 없습니다."
 
     except Exception as e:
-        print(f"에러 발생: {e}")
-        return "네이버 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."
-
-# 운세 DB
-def get_db_fortune(zodiac_name, target_date):
-    conn = None
-    try:
-        conn = Session.get_connection()
-        with conn.cursor() as cursor:
-            # 1. DB 조회
-            sql = "SELECT content FROM fortunes WHERE zodiac_name = %s AND target_date = %s"
-            cursor.execute(sql, (zodiac_name, target_date))
-            result = cursor.fetchone()
-
-            if result:
-                # 튜플/딕셔너리 모든 환경 대응
-                return result['content'] if isinstance(result, dict) else result[0]
-
-            # 2. DB에 없으면 크롤링
-            is_tomorrow = target_date > datetime.now().date()
-            content = crawl_naver_fortune(zodiac_name, is_tomorrow)
-
-            # 3. 크롤링한 내용이 정상일 때만 DB 저장
-            if "실패" not in content and "없습니다" not in content:
-                insert_sql = "INSERT INTO fortunes (zodiac_name, target_date, content) VALUES (%s, %s, %s)"
-                cursor.execute(insert_sql, (zodiac_name, target_date, content))
-                conn.commit()
-
-            return content
-
-    except Exception:
-        # ❗ 터미널에 아주 상세한 에러 로그를 찍어줍니다. 이걸 확인해야 합니다.
-        print("DB/로직 상세 에러 로그 발생!")
-        traceback.print_exc()
-        return "운세 로직 처리 중 내부 오류가 발생했습니다."
-    finally:
-        if conn:
-            conn.close()
+        print(f"크롤링 에러: {e}")
+        return "에러 발생", "에러 발생"
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                  랜덤 채팅
