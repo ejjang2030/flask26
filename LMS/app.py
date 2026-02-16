@@ -426,7 +426,7 @@ def board_list():
         FROM boards b
         JOIN members m ON b.member_id = m.id
         {where_clause}
-        ORDER BY b.is_pinned DESC, b.id DESC
+        ORDER BY b.is_pinned DESC, b.created_at DESC
         LIMIT {per_page} OFFSET {offset}
     """
     rows = fetch_query(sql)
