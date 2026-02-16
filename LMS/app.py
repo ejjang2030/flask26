@@ -701,6 +701,34 @@ def add_comment(board_id):
 
     return jsonify({'success': True})
 
+
+@app.route('/board/upload/image', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file:
+        # --- [변경 구간 시작] ---
+
+        # 2. Cloudinary 업로드 함수 호출
+        # folder='board_editor'로 설정하면 Cloudinary 내 해당 폴더에 정리됨
+        image_url = upload_file(file, folder="board_editor")
+
+        if image_url:
+            # 3. 성공 시 Cloudinary URL 반환
+            return jsonify({'url': image_url})
+        else:
+            # 4. 실패 시 에러 반환
+            return jsonify({'error': 'Cloudinary upload failed'}), 500
+
+        # --- [변경 구간 끝] ---
+
+    return jsonify({'error': 'Upload failed'}), 500
+
 # 게시물 신고 기능
 @app.route('/board/report/<int:board_id>', methods=['POST'])
 def board_report(board_id):

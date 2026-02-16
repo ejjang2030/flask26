@@ -1,17 +1,22 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.18/lang/summernote-ko-KR.min.js"></script>
+
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
 
             <div class="d-flex align-items-center mb-4 px-2">
-                <div class="bg-info bg-opacity-10 p-2 rounded-3 me-3" style="background-color: rgba(32, 130, 138, 0.1) !important;">
+                <div class="p-2 rounded-3 me-3" style="background-color: rgba(32, 130, 138, 0.1) !important;">
                     <i class="bi bi-pencil-square fs-3" style="color: #20828A;"></i>
                 </div>
                 <div>
                     <h2 class="fw-bold mb-1" style="letter-spacing: -1px;">게시글 수정</h2>
-                    <p class="text-muted mb-0 small">Communa 식구들과 나눈 소중한 글을 수정합니다.</p>
+                    <p class="text-muted mb-0 small">작성했던 내용을 다시 다듬습니다.</p>
                 </div>
             </div>
 
@@ -33,10 +38,18 @@
                             <label class="form-label fw-bold text-dark small mb-2">
                                 <i class="bi bi-justify-left me-1 text-muted"></i> 내용
                             </label>
-                            <textarea name="content" class="form-control border-2 rounded-3"
-                                      rows="12" placeholder="내용을 자유롭게 수정하세요"
-                                      style="resize: none;" required>{{ board.content }}</textarea>
+                            <textarea id="summernote" name="content" required>{{ board.content }}</textarea>
                         </div>
+
+                        {% if is_admin %}
+                        <div class="form-check mb-4 p-3 bg-light rounded-3 border">
+                            <input class="form-check-input" type="checkbox" name="is_pinned" id="isPinned"
+                                   {% if board.is_pinned %}checked{% endif %}>
+                            <label class="form-check-label text-danger fw-bold" for="isPinned">
+                                <i class="bi bi-pin-angle-fill me-1"></i> 상단 고정 게시글 설정
+                            </label>
+                        </div>
+                        {% endif %}
 
                         <div class="row g-2 pt-4 mt-2 border-top">
                             <div class="col-6 col-md-3 ms-auto">
@@ -45,7 +58,8 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-4">
-                                <button type="submit" class="btn btn-dark w-100 py-2 fw-bold rounded-pill shadow-sm" style="background-color: #20828A; border: none;">
+                                <button type="submit" class="btn text-white w-100 py-2 fw-bold rounded-pill shadow-sm"
+                                        style="background-color: #20828A; border: none;">
                                     <i class="bi bi-check2-all me-1"></i> 수정완료
                                 </button>
                             </div>
@@ -57,12 +71,67 @@
             <div class="mt-4 p-3 rounded-3 border-0 shadow-sm d-flex align-items-center" style="background-color: #f0f7f7;">
                 <i class="bi bi-info-circle-fill me-2" style="color: #20828A;"></i>
                 <p class="mb-0 small text-muted">
-                    수정 버튼을 누르면 즉시 게시판에 반영됩니다. 내용을 다시 한번 확인해 주세요.
+                    이미지가 포함된 게시글을 수정할 때, 이미지를 삭제하면 복구할 수 없습니다.
                 </p>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Summernote 초기화는 라이브러리 특성상 jQuery 문법($)을 써야 합니다.
+    $(document).ready(function() {
+        $('#summernote').summernote({
+            placeholder: '내용을 입력해주세요. 이미지를 드래그해서 넣을 수 있습니다.',
+            tabsize: 2,
+            height: 500,
+            lang: 'ko-KR',
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'underline', 'clear']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['table', ['table']],
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['fullscreen', 'codeview', 'help']]
+            ],
+            // 콜백 설정
+            callbacks: {
+                onImageUpload: function(files) {
+                    for (let i = 0; i < files.length; i++) {
+                        uploadImage(files[i]);
+                    }
+                }
+            }
+        });
+    });
+
+    // [변경] jQuery $.ajax 대신 순수 자바스크립트 fetch 사용
+    function uploadImage(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch('/board/upload/image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // 서버에서 { "url": "이미지주소" } 형식으로 리턴받음
+            // 에디터에 이미지 삽입 (이 부분은 Summernote API라 jQuery 문법 사용)
+            $('#summernote').summernote('insertImage', data.url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("이미지 업로드에 실패했습니다.");
+        });
+    }
+</script>
 
 <style>
     /* Focus 스타일 통일 */
@@ -74,6 +143,23 @@
     /* 카드 그림자 미세 조정 */
     .shadow-sm {
         box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+    }
+
+    /* Summernote 에디터 테두리 스타일 커스텀 (Communa 브랜드 컬러) */
+    .note-editor.note-frame {
+        border-color: #dee2e6;
+        border-radius: 0.375rem; /* 부트스트랩 rounded-3과 유사 */
+    }
+
+    /* 에디터 활성화 시 테두리 색상 변경 */
+    .note-editor.note-frame.active {
+        border-color: #20828A !important;
+    }
+
+    .note-toolbar {
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #e2e2e2 !important;
+        border-radius: 0.375rem 0.375rem 0 0;
     }
 </style>
 {% endblock %}

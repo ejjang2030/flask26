@@ -1,33 +1,133 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <h2 class="mb-4">새 글 작성</h2>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.18/lang/summernote-ko-KR.min.js"></script>
+
+<style>
+    /* Communa 스타일 적용 */
+    :root {
+        --communa-primary: #20828A;
+        --communa-hover: #186b72;
+    }
+
+    /* 에디터 툴바 스타일 커스텀 */
+    .note-toolbar {
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #e2e2e2 !important;
+    }
+
+    .note-editor.note-frame {
+        border-color: #ced4da;
+        border-radius: 0.375rem; /* 부트스트랩 rounded 적용 */
+        box-shadow: none;
+    }
+
+    /* 포커스 되었을 때 테두리 색상 (Communa Teal) */
+    .note-editor.note-frame.active {
+        border-color: var(--communa-primary) !important;
+    }
+</style>
+
+<div class="container mt-5 mb-5" style="max-width: 900px;">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+            <h4 class="fw-bold text-dark">
+                <i class="bi bi-pen-fill me-2" style="color: #20828A;"></i>새 글 작성
+            </h4>
+        </div>
+
+        <div class="card-body p-4">
             <form action="/board/write" method="POST">
-                <div class="mb-3">
-                    <label class="form-label">제목</label>
-                    <input type="text" name="title" class="form-control" placeholder="제목을 입력하세요" required>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary small">제목</label>
+                    <input type="text" name="title" class="form-control form-control-lg bg-light border-0"
+                           placeholder="제목을 입력하세요" required>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">내용</label>
-                    <textarea name="content" class="form-control" rows="10" placeholder="내용을 입력하세요" required></textarea>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary small">내용</label>
+                    <textarea id="summernote" name="content" required></textarea>
                 </div>
-                <!--소현-->
+
                 {% if is_admin %}
-                <div class="form-check mb-3">
+                <div class="form-check mb-4 p-3 bg-light rounded-3 border">
                     <input class="form-check-input" type="checkbox" name="is_pinned" id="isPinned">
                     <label class="form-check-label text-danger fw-bold" for="isPinned">
-                        📌 고정 게시글로 등록 (최대 10개)
+                        <i class="bi bi-pin-angle-fill me-1"></i> 상단 고정 게시글로 등록
                     </label>
                 </div>
                 {% endif %}
-                <!---->
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">등록하기</button>
-                    <a href="/board" class="btn btn-secondary">취소</a>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/board" class="btn btn-light btn-lg px-4 rounded-pill fw-bold text-secondary">취소</a>
+                    <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold border-0"
+                            style="background-color: #20828A;">
+                        <i class="bi bi-send-fill me-1"></i> 등록하기
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+</div>
+
+<script>
+    // Summernote 초기화는 라이브러리 특성상 jQuery 문법($)을 써야 합니다.
+    $(document).ready(function() {
+        $('#summernote').summernote({
+            placeholder: '내용을 입력해주세요. 이미지를 드래그해서 넣을 수 있습니다.',
+            tabsize: 2,
+            height: 500,
+            lang: 'ko-KR',
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'underline', 'clear']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['table', ['table']],
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['fullscreen', 'codeview', 'help']]
+            ],
+            // 콜백 설정
+            callbacks: {
+                onImageUpload: function(files) {
+                    for (let i = 0; i < files.length; i++) {
+                        uploadImage(files[i]);
+                    }
+                }
+            }
+        });
+    });
+
+    // [변경] jQuery $.ajax 대신 순수 자바스크립트 fetch 사용
+    function uploadImage(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch('/board/upload/image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // 서버에서 { "url": "이미지주소" } 형식으로 리턴받음
+            // 에디터에 이미지 삽입 (이 부분은 Summernote API라 jQuery 문법 사용)
+            $('#summernote').summernote('insertImage', data.url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("이미지 업로드에 실패했습니다.");
+        });
+    }
+</script>
 {% endblock %}
