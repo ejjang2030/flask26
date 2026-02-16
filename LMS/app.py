@@ -35,7 +35,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, send_file
 import requests
 from io import BytesIO
-
+from math import ceil
 
 app = Flask(__name__)
 
@@ -1460,6 +1460,78 @@ def server_error(error):
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
 # ----------------------------------------------------------------------------------------------------------------------
+
+# app.py
+
+@app.route('/admin')
+def admin_dashboard():
+    # 1. 권한 체크 (필수)
+    if session.get('user_role') != 'admin':
+        return "<script>alert('관리자만 접근 가능합니다.'); location.href='/';</script>"
+
+    # 2. 페이지네이션 설정
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+
+    # 3. 검색 필터 (Category가 넘어오면 필터링)
+    category_filter = request.args.get('category')
+    where_clause = "WHERE 1=1"
+    params = []
+
+    if category_filter:
+        where_clause += " AND l.category = %s"
+        params.append(category_filter)
+
+    # 4. 통계 데이터 조회 (대시보드 상단용)
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            # (1) 전체 회원 수
+            cursor.execute("SELECT COUNT(*) as cnt FROM members")
+            member_cnt = cursor.fetchone()['cnt']
+
+            # (2) 오늘 발생한 에러 수
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM system_logs WHERE category='ERROR' AND DATE(created_at) = CURDATE()")
+            error_cnt = cursor.fetchone()['cnt']
+
+            # (3) 오늘 발생한 보안 경고 수
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM system_logs WHERE category='SECURITY' AND DATE(created_at) = CURDATE()")
+            security_cnt = cursor.fetchone()['cnt']
+
+            # 5. 로그 목록 조회 (LEFT JOIN으로 탈퇴한 회원이나 비회원 로그도 표시)
+            sql = f"""
+                SELECT l.*, m.name as user_name, m.uid as user_uid
+                FROM system_logs l
+                LEFT JOIN members m ON l.member_id = m.id
+                {where_clause}
+                ORDER BY l.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            # params 리스트에 limit, offset 추가
+            query_params = params + [per_page, offset]
+            cursor.execute(sql, tuple(query_params))
+            logs = cursor.fetchall()
+
+            # 6. 전체 로그 개수 (페이지네이션용)
+            count_sql = f"SELECT COUNT(*) as cnt FROM system_logs l {where_clause}"
+            cursor.execute(count_sql, tuple(params))
+            total_logs = cursor.fetchone()['cnt']
+
+            total_pages = ceil(total_logs / per_page)
+
+    finally:
+        conn.close()
+
+    return render_template('admin.html',
+                           logs=logs,
+                           member_cnt=member_cnt,
+                           error_cnt=error_cnt,
+                           security_cnt=security_cnt,
+                           pagination={'page': page, 'total_pages': total_pages},
+                           current_category=category_filter)
 
 @app.route('/')
 def index():

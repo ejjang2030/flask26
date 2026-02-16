@@ -1,0 +1,177 @@
+{% extends "layout.html" %}
+
+{% block title %}관리자 대시보드{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar rounded-3 p-3 mb-4 h-100">
+            <div class="position-sticky">
+                <h5 class="text-muted text-uppercase ps-3 mb-3">Menu</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-bold text-primary" href="/admin">
+                            <i class="bi bi-speedometer2 me-2"></i> 대시보드
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/score/members">
+                            <i class="bi bi-pencil-square me-2"></i> 성적 관리
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/score/list">
+                             <i class="bi bi-table me-2"></i> 전체 성적 현황
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/board">
+                            <i class="bi bi-list-check me-2"></i> 게시글 관리
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-start border-4 border-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted mb-0">전체 회원수</h6>
+                                    <h3 class="fw-bold mb-0 mt-2">{{ member_cnt }}명</h3>
+                                </div>
+                                <div class="text-primary bg-light rounded-circle p-3">
+                                    <i class="bi bi-people-fill fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-start border-4 border-danger h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted mb-0">오늘의 에러</h6>
+                                    <h3 class="fw-bold mb-0 mt-2">{{ error_cnt }}건</h3>
+                                </div>
+                                <div class="text-danger bg-light rounded-circle p-3">
+                                    <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-start border-4 border-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted mb-0">보안 경고 (오늘)</h6>
+                                    <h3 class="fw-bold mb-0 mt-2">{{ security_cnt }}건</h3>
+                                </div>
+                                <div class="text-warning bg-light rounded-circle p-3">
+                                    <i class="bi bi-shield-lock-fill fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-activity me-2"></i>시스템 감사 로그 (Audit Log)</h5>
+
+                    <div class="btn-group btn-group-sm">
+                        <a href="/admin" class="btn btn-outline-secondary {{ 'active' if not current_category }}">전체</a>
+                        <a href="/admin?category=SECURITY" class="btn btn-outline-warning {{ 'active' if current_category == 'SECURITY' }}">보안</a>
+                        <a href="/admin?category=ERROR" class="btn btn-outline-danger {{ 'active' if current_category == 'ERROR' }}">에러</a>
+                        <a href="/admin?category=AUDIT" class="btn btn-outline-info {{ 'active' if current_category == 'AUDIT' }}">활동</a>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th scope="col" class="ps-4" style="width: 15%;">시간</th>
+                                    <th scope="col" style="width: 10%;">레벨</th>
+                                    <th scope="col" style="width: 10%;">분류</th>
+                                    <th scope="col" style="width: 15%;">행위 (Action)</th>
+                                    <th scope="col" style="width: 15%;">사용자</th>
+                                    <th scope="col" style="width: 25%;">내용</th>
+                                    <th scope="col" style="width: 10%;">IP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td class="ps-4 text-muted">{{ log.created_at }}</td>
+                                    <td>
+                                        {% if log.level == 'CRITICAL' %}
+                                            <span class="badge bg-danger">심각</span>
+                                        {% elif log.level == 'WARNING' %}
+                                            <span class="badge bg-warning text-dark">경고</span>
+                                        {% elif log.level == 'INFO' %}
+                                            <span class="badge bg-info text-dark">정보</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ log.level }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small class="fw-bold text-secondary">{{ log.category }}</small></td>
+                                    <td><span class="badge bg-light text-dark border">{{ log.action }}</span></td>
+                                    <td>
+                                        {% if log.user_name %}
+                                            <span class="d-block fw-bold">{{ log.user_name }}</span>
+                                            <span class="small text-muted">{{ log.user_uid }}</span>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">System / Guest</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-break">{{ log.content }}</td>
+                                    <td><small class="text-muted font-monospace">{{ log.ip_address }}</small></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                        기록된 로그가 없습니다.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white d-flex justify-content-center py-3">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if pagination.page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="/admin?page={{ pagination.page - 1 }}&category={{ current_category or '' }}">이전</a>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="page-item disabled"><a class="page-link">{{ pagination.page }} / {{ pagination.total_pages }}</a></li>
+                            
+                            {% if pagination.page < pagination.total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="/admin?page={{ pagination.page + 1 }}&category={{ current_category or '' }}">다음</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+{% endblock %}
