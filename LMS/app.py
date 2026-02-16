@@ -36,7 +36,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, g
 import requests
 from io import BytesIO
 from math import ceil
-from openai import OpenAI
 
 app = Flask(__name__)
 
@@ -51,10 +50,6 @@ app.secret_key = FLASK_APP_KEY
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-chat_gpt_client = OpenAI(
-    api_key=os.getenv("CHAT_GPT_API_KEY"),
-)
 
 # 2. 폴더가 없는 경우
 # if not os.path.exists(app.config['UPLOAD_FOLDER']):
