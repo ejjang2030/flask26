@@ -1,34 +1,89 @@
 {% extends "layout.html" %}
 
+{% block head %}
+<meta property="og:title" content="나의 개발자 MBTI는? {{ mbti }} - {{ result.title }}">
+<meta property="og:description" content="{{ result.desc }}">
+<meta property="og:image" content="{{ url_for('static', filename='logo/communa_logo.svg', _external=True) }}">
+{% endblock %}
+
 {% block content %}
 <div class="container py-5 text-center" style="max-width: 600px;">
-    
+
     <div class="card shadow-lg border-0 rounded-5 overflow-hidden">
         <div class="card-header bg-primary text-white p-4">
             <h5 class="mb-0 opacity-75">당신의 개발자 유형은?</h5>
             <h1 class="display-1 fw-bold my-2">{{ mbti }}</h1>
         </div>
-        
+
         <div class="card-body p-5 bg-white">
             <div class="mb-4">
-                <span class="display-1">👾</span> 
+                <span class="display-1">👾</span>
             </div>
-            
+
             <h2 class="fw-bold text-primary mb-2">{{ result.animal }}</h2>
             <h4 class="text-dark fw-bold mb-4">"{{ result.title }}"</h4>
-            
-            <p class="lead text-muted mb-5" style="word-break: keep-all;">
+
+            <p class="lead text-muted mb-4" style="word-break: keep-all;">
                 {{ result.desc }}
             </p>
 
             <hr class="my-4">
 
-            <div class="d-grid gap-2 col-8 mx-auto">
-                <a href="/mbti" class="btn btn-outline-secondary rounded-pill">다시 테스트하기</a>
-                <a href="/board" class="btn btn-primary rounded-pill">결과 공유하러 가기</a>
+            <div class="d-grid gap-2 col-10 mx-auto mb-4">
+                <button onclick="shareResult()" class="btn btn-dark rounded-pill fw-bold py-3 shadow-sm">
+                    <i class="bi bi-share-fill me-2"></i>
+                    <span id="shareBtnText">결과 공유하기</span>
+                </button>
+            </div>
+
+            <div class="d-grid gap-2">
+<!--                <a href="/board" class="btn btn-outline-primary rounded-pill">커뮤니티에 자랑하기</a>-->
+                <a href="/mbti" class="btn btn-link text-muted text-decoration-none">다시 테스트하기</a>
             </div>
         </div>
     </div>
 
 </div>
+
+<script>
+    // 1. 공유할 데이터 준비 (현재 URL에 결과 타입이 포함되어 있어야 함)
+    // 예: https://communa.vercel.app/mbti/result?type=ENTJ
+    const shareTitle = "나의 개발자 MBTI는? [{{ mbti }} - {{ result.title }}]";
+    const shareText = "{{ result.desc }}";
+    const shareUrl = window.location.href; // 현재 페이지 주소 그대로 공유
+
+    // 2. 통합 공유 함수 (모바일은 공유시트, PC는 복사)
+    async function shareResult() {
+        // (A) 모바일 등 공유 기능이 있는 브라우저
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl,
+                });
+                console.log('공유 성공');
+            } catch (err) {
+                // 사용자가 공유 창을 닫거나 취소했을 때 에러 무시
+                console.log('공유 취소됨');
+            }
+        }
+        // (B) PC 등 공유 기능이 없는 브라우저 -> 클립보드 복사로 대체
+        else {
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('결과 링크가 복사되었습니다! \n카카오톡이나 SNS에 붙여넣기 하세요.');
+            } catch (err) {
+                prompt('이 주소를 복사해서 공유하세요:', shareUrl);
+            }
+        }
+    }
+
+    // PC 접속 시 버튼 텍스트 변경 UX
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!navigator.share) {
+            document.getElementById('shareBtnText').innerText = "결과 링크 복사하기";
+        }
+    });
+</script>
 {% endblock %}

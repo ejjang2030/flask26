@@ -1463,13 +1463,26 @@ def mbti_main():
     return render_template('mbti_test.html', questions=questions)
 
 
-@app.route('/mbti/result', methods=['POST'])
+@app.route('/mbti/result', methods=['GET', 'POST'])
 def mbti_result():
-    # 폼 데이터 받기 (질문 ID를 키로, 선택한 값(E/I 등)을 밸류로)
-    answers = request.form.to_dict()
-    mbti_type, result_data = MbtiService.calculate_mbti(answers)
+    # 1. 테스트 직후 (POST)
+    if request.method == 'POST':
+        answers = request.form.to_dict()
+        mbti_type, result_data = MbtiService.calculate_mbti(answers)
 
-    return render_template('mbti_result.html', mbti=mbti_type, result=result_data)
+        # [중요] 공유를 위해 리다이렉트 시킵니다!
+        # 이렇게 하면 주소창이 /result?type=ENTJ 로 바뀌어서
+        # 사용자가 그냥 URL을 복사해도 공유가 됩니다.
+        return redirect(url_for('mbti_result', type=mbti_type))
+
+    # 2. 공유 링크 접속 (GET)
+    else:
+        mbti_type = request.args.get('type')
+        if not mbti_type or mbti_type not in MbtiService.RESULTS:
+            return redirect(url_for('mbti_main'))
+
+        result_data = MbtiService.RESULTS[mbti_type]
+        return render_template('mbti_result.html', mbti=mbti_type, result=result_data)
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
