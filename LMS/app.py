@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 
 import uuid
 
-from LMS.common import upload_file
+from LMS.common import upload_file, log_system
 
 load_dotenv()
 import requests
@@ -95,8 +95,10 @@ def login():
         session['user_name'] = user['name']
         session['user_role'] = user['role']
         session['user_profile'] = user['profile_img']
+        log_system('ACCESS', 'INFO', 'LOGIN_SUCCESS', f'로그인 UID : {uid}')
         return redirect(url_for('index'))
     else:
+        log_system('SECURITY', 'WARNING', 'LOGIN_FAIL', f'로그인 시도한 UID: {uid}')
         return "<script>alert('로그인 실패');history.back();</script>"
 
 # 로그아웃
@@ -1444,6 +1446,16 @@ def delete_event():
 
     return jsonify({'success': True})
 
+
+@app.errorhandler(500)
+def server_error(error):
+    # 에러의 상세 내용을 문자열로 가져옴
+    error_trace = traceback.format_exc()
+
+    # [추가] 에러 로그 저장 (CRITICAL 레벨)
+    log_system('ERROR', 'CRITICAL', '500_ERROR', error_trace)
+
+    return "서버에 오류가 발생했습니다. 관리자에게 문의하세요.", 500
 
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                플라스크 실행
