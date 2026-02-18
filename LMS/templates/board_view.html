@@ -124,10 +124,10 @@
                 <div class="d-flex justify-content-between align-items-center p-3 rounded-3"
                      style="background-color: #f8f9fa;">
                     <div class="d-flex align-items-center">
-                        <div class="bg-white shadow-sm rounded-circle d-flex align-items-center justify-content-center me-3"
-                             style="width: 45px; height: 45px; border: 1px solid #eee;">
-                            <i class="bi bi-person-fill text-secondary fs-5"></i>
-                        </div>
+                        <img class="avatar avatar-32 bg-light rounded-circle text-white me-2 {{ '' if board.writer_profile else 'p-2' }}"
+                                     alt="프로필"
+                                     style="width: 32px; height: 32px; object-fit: cover;"
+                                     src="{{ board.writer_profile if board.writer_profile else 'https://raw.githubusercontent.com/twbs/icons/main/icons/person-fill.svg' }}">
                         <div>
                             <div class="fw-bold text-dark">{{ board.writer_name }}</div>
                             <div class="text-muted" style="font-size: 0.75rem;">{{ board.created_at.strftime('%Y-%m-%d

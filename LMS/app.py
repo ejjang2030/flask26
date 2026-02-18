@@ -463,7 +463,7 @@ def board_view(board_id):
 
     # 2. 게시글 상세 정보 가져오기 (신고 수 서브쿼리 추가)
     sql = """
-        SELECT b.*, m.name as writer_name, m.uid as writer_uid,
+        SELECT b.*, m.name as writer_name, m.uid as writer_uid, m.profile_img as writer_profile,
                (SELECT COUNT(*) FROM reports WHERE board_id = b.id) as report_count
         FROM boards b
         JOIN members m ON b.member_id = m.id
@@ -472,7 +472,6 @@ def board_view(board_id):
     row = fetch_query(sql, (board_id,), one=True)
     if not row:
         return '<script>alert("존재하지 않는 게시글입니다."); history.back();</script>'
-
     # 🚩 [신규 추가] 신고 1개 이상 차단 로직 (관리자는 통과)
     if row['report_count'] >= 1:
         if session.get('user_role') != 'admin':
@@ -523,6 +522,7 @@ def board_view(board_id):
     board.likes = like_count
     board.dislikes = dislike_count
     board.report_count = row['report_count']  # 혹시 화면에 신고수 띄울까봐 추가
+    board.writer_profile = row['writer_profile']
 
     return render_template('board_view.html',
                            board=board,
