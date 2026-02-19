@@ -701,7 +701,7 @@ def add_comment(board_id):
 
     return jsonify({'success': True})
 
-
+# 사진 업로드
 @app.route('/board/upload/image', methods=['POST'])
 def upload_image():
     if 'file' not in request.files:
@@ -735,8 +735,6 @@ def board_report(board_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
 
-    # 프론트에서 JSON으로 보냈다면 request.get_json()을 써야 할 수도 있습니다.
-    # 만약 기존처럼 Form으로 보냈다면 그대로 유지하세요.
     data = request.get_json()
     reason = data.get('reason')
     reporter_id = session['user_id']
@@ -1029,7 +1027,7 @@ def filesboard_delete(post_id) :
     PostService.delete_post(post_id)
     return "<script>alert('성공적으로 삭제되었습니다.'); location.href='/filesboard';</script>"
 
-# 파일 게시판수정
+# 파일 게시판 - 수정
 @app.route('/filesboard/edit/<int:post_id>', methods=['GET', 'POST'])
 def filesboard_edit(post_id) :
 
@@ -1099,7 +1097,7 @@ def fortune():
 
     return render_template('fortune.html', data=data)
 
-
+# 네이버에서 불러오기
 def get_naver_fortune(zodiac):
     """
     zodiac: 띠 이름 (예: '쥐띠')
@@ -1143,12 +1141,12 @@ active_rooms = {}  # 활성화된 방 정보: {'room_id': [user1_id, user2_id]}
 adjectives = ["행복한", "빛나는", "배고픈", "용감한", "조용한", "빠른", "푸른"]
 animals = ["사과", "호랑이", "너구리", "토끼", "판다", "다람쥐", "고래"]
 
-# 랜덤매칭 화면
+# 랜덤 매칭 화면
 @app.route('/chat')
 def chat():
     return render_template("chat.html")
 
-# 1. 랜덤 매칭 로직
+# 랜덤 매칭 로직
 @socketio.on("random_match")
 def handle_random_match():
     global waiting_users, active_rooms
@@ -1187,7 +1185,7 @@ def handle_random_match():
         waiting_users.append({'user_id': user_id, 'sid': sid, 'name': user_name})
 
 
-# 2. 메시지 전송 및 DB 저장 (하나로 합친 버전)
+# 메시지 전송 및 DB 저장 (하나로 합친 버전)
 @socketio.on('send_message')
 def handle_send_message(data):
     room_id = data.get("room")
@@ -1226,8 +1224,7 @@ def handle_send_message(data):
             "message": message
         }, room=room_id, include_self=False)
 
-
-# 3. 퇴장 처리
+# 퇴장 처리
 @socketio.on("leave_room")
 def handle_leave(data):
     room_id = data.get("room")
@@ -1247,8 +1244,7 @@ def handle_leave(data):
 #                                                 메모장
 # ----------------------------------------------------------------------------------------------------------------------
 
-
-# 메모장 메인 (목록 조회)
+# 메인 화면
 @app.route('/memo')
 @login_required
 def memo_list():
@@ -1310,8 +1306,7 @@ def memo_delete(memo_id):
     )
     return jsonify({'success': True})
 
-
-# 메모 고정/해제
+# 메모 고정 / 해제
 @app.route('/memo/pin/<int:memo_id>', methods=['POST'])
 def memo_pin(memo_id):
     if 'user_id' not in session:
@@ -1343,18 +1338,17 @@ def memo_pin(memo_id):
         print(f"핀 처리 에러: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                 캘린더
 # ----------------------------------------------------------------------------------------------------------------------
-# 캘린더 클릭
+
+# 메인 화면
 @app.route('/calendar')
 @login_required
 def calendar_main():
     return render_template('calendar.html')
 
-
-# 신규 일정 저장하기 (중복 제거 및 내용 저장 기능 통합본)
+# 일정 등록
 @app.route('/calendar/add', methods=['POST'])
 def add_event():
     if 'user_id' not in session:
@@ -1381,8 +1375,7 @@ def add_event():
 
     return jsonify({'success': True})
 
-
-# 일정 보기
+# 일정 확인
 @app.route('/calendar/events')
 def get_events():
     if 'user_id' not in session:
@@ -1439,7 +1432,7 @@ def delete_event():
 
     return jsonify({'success': True})
 
-
+# 오류 발생
 @app.errorhandler(500)
 def server_error(error):
     # 에러의 상세 내용을 문자열로 가져옴
@@ -1450,12 +1443,17 @@ def server_error(error):
 
     return "서버에 오류가 발생했습니다. 관리자에게 문의하세요.", 500
 
+# ----------------------------------------------------------------------------------------------------------------------
+#                                                 MBTI
+# ----------------------------------------------------------------------------------------------------------------------
+
+# 메인 화면
 @app.route('/mbti')
 def mbti_main():
     questions = MbtiService.get_questions()
     return render_template('mbti_test.html', questions=questions)
 
-
+# 검사 결과
 @app.route('/mbti/result', methods=['GET', 'POST'])
 def mbti_result():
     # 1. 테스트 직후 (POST)
@@ -1556,7 +1554,6 @@ def admin_dashboard():
 @app.route('/')
 def index():
     return render_template('main.html')
-
 
 if __name__ == '__main__':
     socketio.run(
